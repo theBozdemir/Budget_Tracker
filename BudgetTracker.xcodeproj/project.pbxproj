@@ -1,0 +1,405 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B10000000000000000000001 /* BudgetTrackerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000001 /* BudgetTrackerApp.swift */; };
+		B10000000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000002 /* ContentView.swift */; };
+		B10000000000000000000003 /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000003 /* AuthView.swift */; };
+		B10000000000000000000004 /* HouseholdListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000004 /* HouseholdListView.swift */; };
+		B10000000000000000000005 /* HouseholdDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000005 /* HouseholdDetailView.swift */; };
+		B10000000000000000000006 /* AddTransactionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000006 /* AddTransactionView.swift */; };
+		B10000000000000000000007 /* InviteMemberView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000007 /* InviteMemberView.swift */; };
+		B10000000000000000000008 /* TransactionType.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000008 /* TransactionType.swift */; };
+		B10000000000000000000009 /* Household.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000009 /* Household.swift */; };
+		B1000000000000000000000A /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2000000000000000000000A /* Transaction.swift */; };
+		B1000000000000000000000B /* PendingInvite.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2000000000000000000000B /* PendingInvite.swift */; };
+		B1000000000000000000000C /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2000000000000000000000C /* UserProfile.swift */; };
+		B1000000000000000000000D /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2000000000000000000000D /* AuthManager.swift */; };
+		B1000000000000000000000E /* HouseholdService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2000000000000000000000E /* HouseholdService.swift */; };
+		B1000000000000000000000F /* TransactionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2000000000000000000000F /* TransactionService.swift */; };
+		B10000000000000000000010 /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000010 /* AppConstants.swift */; };
+		B10000000000000000000011 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000011 /* Assets.xcassets */; };
+		B10000000000000000000012 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = B50000000000000000000002 /* FirebaseAuth */; };
+		B10000000000000000000013 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = B50000000000000000000003 /* FirebaseFirestore */; };
+		B10000000000000000000014 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = B50000000000000000000004 /* FirebaseCore */; };
+		B10000000000000000000015 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000014 /* GoogleService-Info.plist */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		B20000000000000000000001 /* BudgetTrackerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetTrackerApp.swift; sourceTree = "<group>"; };
+		B20000000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		B20000000000000000000003 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
+		B20000000000000000000004 /* HouseholdListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HouseholdListView.swift; sourceTree = "<group>"; };
+		B20000000000000000000005 /* HouseholdDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HouseholdDetailView.swift; sourceTree = "<group>"; };
+		B20000000000000000000006 /* AddTransactionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTransactionView.swift; sourceTree = "<group>"; };
+		B20000000000000000000007 /* InviteMemberView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InviteMemberView.swift; sourceTree = "<group>"; };
+		B20000000000000000000008 /* TransactionType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionType.swift; sourceTree = "<group>"; };
+		B20000000000000000000009 /* Household.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Household.swift; sourceTree = "<group>"; };
+		B2000000000000000000000A /* Transaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transaction.swift; sourceTree = "<group>"; };
+		B2000000000000000000000B /* PendingInvite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingInvite.swift; sourceTree = "<group>"; };
+		B2000000000000000000000C /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
+		B2000000000000000000000D /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
+		B2000000000000000000000E /* HouseholdService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HouseholdService.swift; sourceTree = "<group>"; };
+		B2000000000000000000000F /* TransactionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionService.swift; sourceTree = "<group>"; };
+		B20000000000000000000010 /* AppConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
+		B20000000000000000000011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B20000000000000000000012 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B20000000000000000000013 /* GoogleService-Info.plist.example */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist.example"; sourceTree = "<group>"; };
+		B20000000000000000000014 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		B30000000000000000000001 /* BudgetTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BudgetTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		B40000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B10000000000000000000012 /* FirebaseAuth in Frameworks */,
+				B10000000000000000000013 /* FirebaseFirestore in Frameworks */,
+				B10000000000000000000014 /* FirebaseCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		B60000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				B60000000000000000000002 /* BudgetTracker */,
+				B60000000000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		B60000000000000000000002 /* BudgetTracker */ = {
+			isa = PBXGroup;
+			children = (
+				B20000000000000000000001 /* BudgetTrackerApp.swift */,
+				B60000000000000000000004 /* Models */,
+				B60000000000000000000005 /* Services */,
+				B60000000000000000000006 /* Views */,
+				B60000000000000000000007 /* Utilities */,
+				B20000000000000000000011 /* Assets.xcassets */,
+				B20000000000000000000012 /* Info.plist */,
+				B20000000000000000000014 /* GoogleService-Info.plist */,
+				B20000000000000000000013 /* GoogleService-Info.plist.example */,
+			);
+			path = BudgetTracker;
+			sourceTree = "<group>";
+		};
+		B60000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B30000000000000000000001 /* BudgetTracker.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B60000000000000000000004 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				B20000000000000000000008 /* TransactionType.swift */,
+				B20000000000000000000009 /* Household.swift */,
+				B2000000000000000000000A /* Transaction.swift */,
+				B2000000000000000000000B /* PendingInvite.swift */,
+				B2000000000000000000000C /* UserProfile.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		B60000000000000000000005 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				B2000000000000000000000D /* AuthManager.swift */,
+				B2000000000000000000000E /* HouseholdService.swift */,
+				B2000000000000000000000F /* TransactionService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		B60000000000000000000006 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				B20000000000000000000002 /* ContentView.swift */,
+				B20000000000000000000003 /* AuthView.swift */,
+				B20000000000000000000004 /* HouseholdListView.swift */,
+				B20000000000000000000005 /* HouseholdDetailView.swift */,
+				B20000000000000000000006 /* AddTransactionView.swift */,
+				B20000000000000000000007 /* InviteMemberView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		B60000000000000000000007 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				B20000000000000000000010 /* AppConstants.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		B70000000000000000000001 /* BudgetTracker */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B90000000000000000000003 /* Build configuration list for PBXNativeTarget "BudgetTracker" */;
+			buildPhases = (
+				B80000000000000000000001 /* Sources */,
+				B40000000000000000000001 /* Frameworks */,
+				B80000000000000000000002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BudgetTracker;
+			packageProductDependencies = (
+				B50000000000000000000002 /* FirebaseAuth */,
+				B50000000000000000000003 /* FirebaseFirestore */,
+				B50000000000000000000004 /* FirebaseCore */,
+			);
+			productName = BudgetTracker;
+			productReference = B30000000000000000000001 /* BudgetTracker.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		BA0000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					B70000000000000000000001 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = B90000000000000000000001 /* Build configuration list for PBXProject "BudgetTracker" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = B60000000000000000000001;
+			packageReferences = (
+				B50000000000000000000001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
+			productRefGroup = B60000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B70000000000000000000001 /* BudgetTracker */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		B80000000000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B10000000000000000000011 /* Assets.xcassets in Resources */,
+				B10000000000000000000015 /* GoogleService-Info.plist in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		B80000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B10000000000000000000001 /* BudgetTrackerApp.swift in Sources */,
+				B10000000000000000000002 /* ContentView.swift in Sources */,
+				B10000000000000000000003 /* AuthView.swift in Sources */,
+				B10000000000000000000004 /* HouseholdListView.swift in Sources */,
+				B10000000000000000000005 /* HouseholdDetailView.swift in Sources */,
+				B10000000000000000000006 /* AddTransactionView.swift in Sources */,
+				B10000000000000000000007 /* InviteMemberView.swift in Sources */,
+				B10000000000000000000008 /* TransactionType.swift in Sources */,
+				B10000000000000000000009 /* Household.swift in Sources */,
+				B1000000000000000000000A /* Transaction.swift in Sources */,
+				B1000000000000000000000B /* PendingInvite.swift in Sources */,
+				B1000000000000000000000C /* UserProfile.swift in Sources */,
+				B1000000000000000000000D /* AuthManager.swift in Sources */,
+				B1000000000000000000000E /* HouseholdService.swift in Sources */,
+				B1000000000000000000000F /* TransactionService.swift in Sources */,
+				B10000000000000000000010 /* AppConstants.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		B90000000000000000000004 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		B90000000000000000000005 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_OPTIMIZATION_LEVEL = s;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		B90000000000000000000006 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Q3U557U24F;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BudgetTracker/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Budget Tracker";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tarikbozdemir.budgettracker;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		B90000000000000000000007 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Q3U557U24F;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BudgetTracker/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Budget Tracker";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tarikbozdemir.budgettracker;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		B90000000000000000000001 /* Build configuration list for PBXProject "BudgetTracker" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B90000000000000000000004 /* Debug */,
+				B90000000000000000000005 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B90000000000000000000003 /* Build configuration list for PBXNativeTarget "BudgetTracker" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B90000000000000000000006 /* Debug */,
+				B90000000000000000000007 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		B50000000000000000000001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		B50000000000000000000002 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B50000000000000000000001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		B50000000000000000000003 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B50000000000000000000001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		B50000000000000000000004 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B50000000000000000000001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = BA0000000000000000000001 /* Project object */;
+}

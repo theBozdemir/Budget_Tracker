@@ -1,0 +1,19 @@
+# Xcode
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# Firebase
+GoogleService-Info.plist
+firebase/functions/node_modules/
+.firebase/
+firebase-debug.log
+firebase/public/
+
+# Web
+web/node_modules/
+web/dist/
+web/.env
+
+# macOS
+.DS_Store

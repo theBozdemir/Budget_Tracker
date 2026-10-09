@@ -1,0 +1,15 @@
+{
+  "_comment": "Rename this file to GoogleService-Info.plist after creating your Firebase iOS app.",
+  "API_KEY": "YOUR_API_KEY",
+  "GCM_SENDER_ID": "YOUR_SENDER_ID",
+  "PLIST_VERSION": "1",
+  "BUNDLE_ID": "com.budgettracker.app",
+  "PROJECT_ID": "your-firebase-project-id",
+  "STORAGE_BUCKET": "your-firebase-project-id.appspot.com",
+  "IS_ADS_ENABLED": false,
+  "IS_ANALYTICS_ENABLED": false,
+  "IS_APPINVITE_ENABLED": true,
+  "IS_GCM_ENABLED": true,
+  "IS_SIGNIN_ENABLED": true,
+  "GOOGLE_APP_ID": "1:YOUR_SENDER_ID:ios:YOUR_APP_ID"
+}
