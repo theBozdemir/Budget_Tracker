@@ -9,6 +9,8 @@ struct AddTransactionView: View {
 
     @State private var amountText = ""
     @State private var type: TransactionType = .expense
+    @State private var expenseCategories = AppConstants.expenseCategories
+    @State private var incomeCategories = AppConstants.incomeCategories
     @State private var category = AppConstants.expenseCategories[0]
     @State private var note = ""
     @State private var timestamp = Date()
@@ -34,7 +36,7 @@ struct AddTransactionView: View {
 
                 Section("Category") {
                     Picker("Category", selection: $category) {
-                        ForEach(AppConstants.categories(for: type), id: \.self) { item in
+                        ForEach(categories(for: type), id: \.self) { item in
                             Text(item).tag(item)
                         }
                     }
@@ -53,8 +55,9 @@ struct AddTransactionView: View {
                 }
             }
             .onChange(of: type) { _, newType in
-                category = AppConstants.categories(for: newType)[0]
+                category = categories(for: newType).first ?? ""
             }
+            .task { await loadCategories() }
             .navigationTitle("Add Entry")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -84,6 +87,21 @@ struct AddTransactionView: View {
         Double(amountText.replacingOccurrences(of: ",", with: "."))
     }
 
+    private func categories(for type: TransactionType) -> [String] {
+        type == .income ? incomeCategories : expenseCategories
+    }
+
+    private func loadCategories() async {
+        guard let householdId = household.id else { return }
+        do {
+            let categories = try await HouseholdService.fetchCategories(householdId: householdId)
+            expenseCategories = categories.expense
+            incomeCategories = categories.income
+            category = self.categories(for: type).first ?? ""
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
     private func save() async {
         guard
             let householdId = household.id,

@@ -27,9 +27,44 @@ enum HouseholdService {
         var newHousehold = household
         newHousehold.id = ref.documentID
         try ref.setData(from: newHousehold)
+        try await ref.updateData([
+            "expenseCategories": AppConstants.expenseCategories,
+            "incomeCategories": AppConstants.incomeCategories
+        ])
         return newHousehold
     }
 
+    static func fetchCategories(householdId: String) async throws -> (expense: [String], income: [String]) {
+        let snapshot = try await db.collection("households").document(householdId).getDocument()
+        let data = snapshot.data() ?? [:]
+        return (
+            data["expenseCategories"] as? [String] ?? AppConstants.expenseCategories,
+            data["incomeCategories"] as? [String] ?? AppConstants.incomeCategories
+        )
+    }
+
+    static func updateCategories(householdId: String, expense: [String], income: [String]) async throws {
+        let normalizedExpense = normalizedCategories(expense)
+        let normalizedIncome = normalizedCategories(income)
+        guard !normalizedExpense.isEmpty, !normalizedIncome.isEmpty else {
+            throw CategoryError.keepOneOfEach
+        }
+        try await db.collection("households").document(householdId).updateData([
+            "expenseCategories": normalizedExpense,
+            "incomeCategories": normalizedIncome
+        ])
+    }
+
+    private static func normalizedCategories(_ categories: [String]) -> [String] {
+        var seen = Set<String>()
+        return categories.compactMap { category in
+            let normalized = category.trimmingCharacters(in: .whitespacesAndNewlines)
+                .split(whereSeparator: \.isWhitespace)
+                .joined(separator: " ")
+            guard !normalized.isEmpty, seen.insert(normalized.lowercased()).inserted else { return nil }
+            return normalized
+        }
+    }
     static func inviteMember(
         email: String,
         household: Household,
@@ -80,6 +115,13 @@ enum HouseholdService {
     }
 }
 
+enum CategoryError: LocalizedError {
+    case keepOneOfEach
+
+    var errorDescription: String? {
+        "Keep at least one category in each list."
+    }
+}
 enum InviteError: LocalizedError {
     case invalidEmail
     case cannotInviteSelf

@@ -9,6 +9,8 @@ Shared household budget app built with **SwiftUI** and **Firebase**.
 - Group isolation — transactions in one household are hidden from other groups
 - Add **expenses** and **income** with full **date & time**
 - Shared transaction list and balance summary per household
+- Household members can customize expense and income categories
+- Filter transactions by type, category, member, and date range
 - Accept pending invites after signing up with the invited email
 
 ---
