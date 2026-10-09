@@ -33,6 +33,9 @@ export function summarize(transactions) {
 
 export function filterTransactions(transactions, filters) {
   const { type = 'all', categories = [], memberId = 'all', dateFrom = '', dateTo = '' } = filters
+  const from = dateFrom ? new Date(`${dateFrom}T00:00:00`) : null
+  const toExclusive = dateTo ? new Date(`${dateTo}T00:00:00`) : null
+  if (toExclusive) toExclusive.setDate(toExclusive.getDate() + 1)
 
   return transactions.filter((tx) => {
     if (type !== 'all' && tx.type !== type) return false
@@ -40,14 +43,8 @@ export function filterTransactions(transactions, filters) {
     if (memberId !== 'all' && tx.createdBy !== memberId) return false
 
     const date = toDate(tx.timestamp)
-    if (dateFrom) {
-      const from = new Date(`${dateFrom}T00:00:00`)
-      if (date < from) return false
-    }
-    if (dateTo) {
-      const to = new Date(`${dateTo}T23:59:59.999`)
-      if (date > to) return false
-    }
+    if (from && !Number.isNaN(from.getTime()) && date < from) return false
+    if (toExclusive && !Number.isNaN(toExclusive.getTime()) && date >= toExclusive) return false
 
     return true
   })

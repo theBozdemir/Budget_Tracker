@@ -785,3 +785,88 @@ button.btn.full {
     padding-bottom: calc(var(--nav-height) + var(--space-md));
   }
 }
+
+.category-tabs {
+  margin: 12px 0;
+}
+
+.category-chip-list,
+.filter-chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+}
+
+.category-chip,
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  background: #fff;
+  padding: 6px 10px;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.chip-remove {
+  border: 0;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.chip-remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.category-add-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.filter-panel {
+  margin: 12px 0 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #fff;
+  padding: var(--space-sm);
+}
+
+.filter-chip {
+  cursor: pointer;
+}
+
+.filter-chip.active {
+  border-color: #16a34a;
+  background: #ecfdf5;
+  color: #15803d;
+  font-weight: 600;
+}
+
+.filter-date-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.filter-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+@media (max-width: 360px) {
+  .filter-date-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -14,14 +14,16 @@ export function normalizeCategoryName(name) {
 
 export function uniqCategories(list) {
   const seen = new Set()
-  return list.filter((item) => {
+  return list.reduce((categories, item) => {
+    if (typeof item !== 'string') return categories
     const normalized = normalizeCategoryName(item)
-    if (!normalized) return false
+    if (!normalized) return categories
     const key = normalized.toLowerCase()
-    if (seen.has(key)) return false
+    if (seen.has(key)) return categories
     seen.add(key)
-    return true
-  })
+    categories.push(normalized)
+    return categories
+  }, [])
 }
 
 export function getHouseholdCategories(household) {

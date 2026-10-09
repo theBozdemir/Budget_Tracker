@@ -159,18 +159,18 @@ export async function updateHouseholdCurrency(householdId, currency) {
 export async function ensureHouseholdCategories(household) {
   if (!household?.id) return household
 
+  const existingExpense = household.expenseCategories || []
+  const existingIncome = household.incomeCategories || []
   const expenseCategories = uniqCategories(
-    household.expenseCategories?.length ? household.expenseCategories : defaultExpenseCategories()
+    existingExpense.length ? existingExpense : defaultExpenseCategories()
   )
   const incomeCategories = uniqCategories(
-    household.incomeCategories?.length ? household.incomeCategories : defaultIncomeCategories()
+    existingIncome.length ? existingIncome : defaultIncomeCategories()
   )
 
   const needsSave =
-    !household.expenseCategories?.length ||
-    !household.incomeCategories?.length ||
-    expenseCategories.length !== (household.expenseCategories || []).length ||
-    incomeCategories.length !== (household.incomeCategories || []).length
+    JSON.stringify(expenseCategories) !== JSON.stringify(existingExpense) ||
+    JSON.stringify(incomeCategories) !== JSON.stringify(existingIncome)
 
   if (needsSave) {
     await updateDoc(doc(db, 'households', household.id), {

@@ -76,6 +76,7 @@ Share that link with your wife — she can open it on her iPhone, sign up, and a
 - Multiple private households
 - Invite members by email
 - Expenses & income with date/time
-- Separate category lists for income vs expenses
+- Separate household-wide category lists for income vs expenses, customizable by every member
+- Filter transactions by income/expense type, category, member, and date range
 - Balance, income & expense summary
 - Same data as iOS app (shared Firebase)

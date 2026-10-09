@@ -120,8 +120,11 @@ export default function HouseholdDetailPage() {
     try {
       const updated = await updateHouseholdCategories(household.id, nextLists)
       setHousehold((prev) => ({ ...prev, ...updated }))
-    } catch (err) {
-      setError(firestoreErrorMessage(err))
+      setFilterCategories((prev) =>
+        prev.filter((category) =>
+          updated.expenseCategories.includes(category) || updated.incomeCategories.includes(category)
+        )
+      )
     } finally {
       setActing(false)
     }
