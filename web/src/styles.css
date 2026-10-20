@@ -145,6 +145,100 @@ svg {
   min-width: 0;
 }
 
+.page-title-block {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.page-title-block h1 {
+  flex: none;
+}
+
+.members-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.members-bar-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: none;
+  padding: 2px 4px 2px 0;
+  cursor: pointer;
+  color: #4b5563;
+  font-size: var(--text-sm);
+  min-width: 0;
+  text-align: left;
+}
+
+.members-bar-open:hover .members-bar-text {
+  text-decoration: underline;
+}
+
+.members-bar-pending {
+  color: #c2410c;
+  white-space: nowrap;
+}
+
+@media (max-width: 479px) {
+  .hide-narrow {
+    display: none;
+  }
+}
+
+.avatar-stack {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.avatar-stack-item,
+.avatar-add {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.avatar-stack-item {
+  background: #dcfce7;
+  color: #15803d;
+  border: 2px solid #f3f4f6;
+}
+
+.avatar-stack-item + .avatar-stack-item {
+  margin-left: -8px;
+}
+
+.avatar-stack-item.more {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.avatar-add {
+  border: 1.5px dashed #16a34a;
+  background: #fff;
+  color: #15803d;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.avatar-add:hover {
+  background: #ecfdf5;
+}
+
 .back-link {
   display: inline-block;
   margin-bottom: 8px;
@@ -538,7 +632,7 @@ button.btn.full {
 .members-popover {
   position: absolute;
   top: calc(100% + 8px);
-  right: 0;
+  left: 0;
   z-index: 15;
   width: min(300px, calc(100vw - 32px));
   background: white;
@@ -606,6 +700,33 @@ button.btn.full {
   font-size: var(--text-sm);
   flex-shrink: 0;
   margin-top: 2px;
+}
+
+.member-avatar.pending {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.members-popover-subheading {
+  margin: 14px 0 8px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.invite-item-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: -8px;
+}
+
+.members-popover-invite {
+  margin-top: 12px;
+}
+
+.members-popover-note {
+  margin: 8px 0 0;
+  text-align: center;
 }
 
 .member-details {
@@ -749,15 +870,8 @@ button.btn.full {
     width: 100%;
   }
 
-  .section-header-actions .btn,
-  .members-popover-anchor .btn {
+  .section-header-actions .btn {
     flex: 1;
-  }
-
-  .members-popover {
-    left: 0;
-    right: 0;
-    width: auto;
   }
 
   .section-header .btn {
@@ -1213,4 +1327,8 @@ button.btn.full {
 .chart-table th {
   color: #6b7280;
   font-weight: 600;
+}
+
+.link-button.danger {
+  color: #b91c1c;
 }
