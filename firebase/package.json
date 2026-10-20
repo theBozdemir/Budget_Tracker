@@ -1,8 +1,7 @@
 {
   "scripts": {
     "build:web": "cd ../web && npm run build",
-    "copy:web": "rm -rf public && cp -r ../web/dist public",
-    "predeploy": "npm run build:web && npm run copy:web",
+    "predeploy": "npm run build:web",
     "deploy": "firebase deploy --only hosting"
   },
   "devDependencies": {
