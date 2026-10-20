@@ -9,7 +9,7 @@ const SERIES = [
 const DEFAULT_MONTHS = 12
 const MAX_MONTHS = 24
 
-const HEIGHT = 240
+const HEIGHT = 170
 const PAD = { top: 12, right: 8, bottom: 28, left: 52 }
 
 function monthKey(date) {
@@ -126,9 +126,8 @@ export default function MonthlyChart({ transactions, currency, dateFrom, dateTo 
   const tooltipLeft = hoverIndex != null ? ((PAD.left + band * (hoverIndex + 0.5)) / width) * 100 : 0
 
   return (
-    <section className="section-block">
-      <div className="section-header">
-        <h2>Monthly overview</h2>
+    <div className="insights-panel">
+      <div className="insights-toolbar">
         <div className="chart-legend">
           {SERIES.map((s) => (
             <span key={s.key} className="chart-legend-item">
@@ -142,7 +141,7 @@ export default function MonthlyChart({ transactions, currency, dateFrom, dateTo 
       {!hasData ? (
         <p className="muted small">No transactions in this period.</p>
       ) : (
-        <div className="monthly-card">
+        <div>
           <div className="monthly-figure" ref={figureRef} onMouseLeave={() => setHoverIndex(null)}>
             <svg
               viewBox={`0 0 ${width} ${HEIGHT}`}
@@ -253,6 +252,6 @@ export default function MonthlyChart({ transactions, currency, dateFrom, dateTo 
           </details>
         </div>
       )}
-    </section>
+    </div>
   )
 }
