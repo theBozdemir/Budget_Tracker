@@ -47,6 +47,7 @@ export default function HouseholdDetailPage() {
   const [showAdd, setShowAdd] = useState(false)
   const [showInvite, setShowInvite] = useState(false)
   const [showMembers, setShowMembers] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [filterType, setFilterType] = useState('all')
   const [filterCategories, setFilterCategories] = useState([])
@@ -254,7 +255,7 @@ export default function HouseholdDetailPage() {
   return (
     <div className="page">
       <Link to="/" className="back-link">← Households</Link>
-      <header className="page-header">
+      <header className="page-header household-header">
         <div className="page-title-block">
           <h1>{household.name}</h1>
           <div className="members-popover-anchor">
@@ -291,7 +292,18 @@ export default function HouseholdDetailPage() {
             )}
           </div>
         </div>
-        <button className="btn small primary" onClick={() => setShowAdd(true)}>+ Add</button>
+        <div className="page-header-actions">
+          <button
+            type="button"
+            className="btn small icon-btn"
+            aria-label="Household settings"
+            title="Household settings"
+            onClick={() => setShowSettings(true)}
+          >
+            ⚙
+          </button>
+          <button className="btn small primary" onClick={() => setShowAdd(true)}>+ Add</button>
+        </div>
       </header>
 
       <ErrorBanner message={error} onDismiss={() => setError('')} />
@@ -325,12 +337,6 @@ export default function HouseholdDetailPage() {
         currency={householdCurrency}
         dateFrom={filterDateFrom}
         dateTo={filterDateTo}
-      />
-
-      <CategorySettings
-        household={household}
-        disabled={acting}
-        onUpdate={handleCategoriesUpdate}
       />
 
       <section className="section-block">
@@ -389,47 +395,6 @@ export default function HouseholdDetailPage() {
         )}
       </section>
 
-      <section className="section-block">
-        <h2>Currency</h2>
-        <p className="muted small">All amounts in this household use the selected currency.</p>
-        <label className="currency-setting">
-          Currency
-          <select
-            value={householdCurrency}
-            disabled={acting}
-            onChange={(e) => handleCurrencyChange(e.target.value)}
-          >
-            {HOUSEHOLD_CURRENCIES.map((option) => (
-              <option key={option.code} value={option.code}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <p className="muted small preview-currency">
-          Preview: {formatCurrency(1234.56, householdCurrency)}
-        </p>
-      </section>
-
-      <section className="section-block danger-zone">
-        <h2>Household Settings</h2>
-        <p className="muted small">
-          {isOwner
-            ? 'Leave this household or delete it permanently. Only you can delete it.'
-            : 'Leave this household if you no longer want access.'}
-        </p>
-        <div className="invite-action-stack">
-          <button type="button" className="btn" disabled={acting} onClick={handleLeave}>
-            {acting ? 'Working...' : 'Leave Household'}
-          </button>
-          {isOwner && (
-            <button type="button" className="btn danger" disabled={acting} onClick={handleDeleteHousehold}>
-              {acting ? 'Deleting...' : 'Delete Household'}
-            </button>
-          )}
-        </div>
-      </section>
-
       {showAdd && (
         <AddTransactionModal
           household={household}
@@ -440,6 +405,20 @@ export default function HouseholdDetailPage() {
             setShowAdd(false)
             await load()
           }}
+        />
+      )}
+
+      {showSettings && (
+        <SettingsModal
+          household={household}
+          currency={householdCurrency}
+          isOwner={isOwner}
+          acting={acting}
+          onCategoriesUpdate={handleCategoriesUpdate}
+          onCurrencyChange={handleCurrencyChange}
+          onLeave={handleLeave}
+          onDelete={handleDeleteHousehold}
+          onClose={() => setShowSettings(false)}
         />
       )}
 
@@ -586,6 +565,77 @@ function MembersPopover({ household, user, profile, members, invites, onCancelIn
   )
 }
 
+function SettingsModal({
+  household,
+  currency,
+  isOwner,
+  acting,
+  onCategoriesUpdate,
+  onCurrencyChange,
+  onLeave,
+  onDelete,
+  onClose,
+}) {
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') onClose()
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal settings-modal" role="dialog" aria-label="Household settings" onClick={(e) => e.stopPropagation()}>
+        <div className="settings-modal-header">
+          <h2>Household Settings</h2>
+          <button type="button" className="popover-close" onClick={onClose} aria-label="Close">
+            ×
+          </button>
+        </div>
+
+        <CategorySettings household={household} disabled={acting} onUpdate={onCategoriesUpdate} />
+
+        <section className="settings-section">
+          <h3>Currency</h3>
+          <p className="muted small">All amounts in this household use the selected currency.</p>
+          <label className="currency-setting">
+            Currency
+            <select value={currency} disabled={acting} onChange={(e) => onCurrencyChange(e.target.value)}>
+              {HOUSEHOLD_CURRENCIES.map((option) => (
+                <option key={option.code} value={option.code}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="muted small preview-currency">Preview: {formatCurrency(1234.56, currency)}</p>
+        </section>
+
+        <section className="settings-section danger-zone">
+          <h3>Leave or delete</h3>
+          <p className="muted small">
+            {isOwner
+              ? 'Leave this household or delete it permanently. Only you can delete it.'
+              : 'Leave this household if you no longer want access.'}
+          </p>
+          <div className="invite-action-stack">
+            <button type="button" className="btn" disabled={acting} onClick={onLeave}>
+              {acting ? 'Working...' : 'Leave Household'}
+            </button>
+            {isOwner && (
+              <button type="button" className="btn danger" disabled={acting} onClick={onDelete}>
+                {acting ? 'Deleting...' : 'Delete Household'}
+              </button>
+            )}
+          </div>
+        </section>
+      </div>
+    </div>
+  )
+}
+
 function CategorySettings({ household, disabled, onUpdate }) {
   const [tab, setTab] = useState('expense')
   const [newName, setNewName] = useState('')
@@ -640,8 +690,8 @@ function CategorySettings({ household, disabled, onUpdate }) {
   }
 
   return (
-    <section className="section-block">
-      <h2>Categories</h2>
+    <section className="settings-section">
+      <h3>Categories</h3>
       <p className="muted small">Customize expense and income categories for this household.</p>
 
       <div className="segmented category-tabs">
