@@ -11,6 +11,7 @@ Shared household budget app built with **SwiftUI** and **Firebase**.
 - Shared transaction list and balance summary per household
 - Household members can customize expense and income categories
 - Filter transactions by type, category, member, and date range
+- Monthly income vs. expenses chart and spending-by-category donut chart (web), both following the active filters
 - Accept pending invites after signing up with the invited email
 
 ---
