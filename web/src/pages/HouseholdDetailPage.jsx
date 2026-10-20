@@ -6,8 +6,7 @@ import ErrorBanner from '../components/ErrorBanner'
 import { db } from '../firebase'
 import { firestoreErrorMessage } from '../firestoreErrors'
 import { DEFAULT_CURRENCY, formatCurrency, formatDateTime, HOUSEHOLD_CURRENCIES, toDate } from '../constants'
-import CategoryPieChart from '../components/CategoryPieChart'
-import MonthlyChart from '../components/MonthlyChart'
+import InsightsCard from '../components/InsightsCard'
 import { categoriesForHouseholdType, getHouseholdCategories, normalizeCategoryName, uniqCategories } from '../services/categories'
 import {
   deleteHousehold,
@@ -280,14 +279,12 @@ export default function HouseholdDetailPage() {
         )}
       </section>
 
-      <MonthlyChart
+      <InsightsCard
         transactions={filteredTransactions}
         currency={householdCurrency}
         dateFrom={filterDateFrom}
         dateTo={filterDateTo}
       />
-
-      <CategoryPieChart transactions={filteredTransactions} currency={householdCurrency} />
 
       <section className="section-block">
         <div className="section-header">

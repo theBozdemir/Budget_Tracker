@@ -80,14 +80,14 @@ function formatShare(share) {
 export default function CategoryPieChart({ transactions, currency }) {
   const [type, setType] = useState('expense')
   const [active, setActive] = useState(null)
+  const [showAll, setShowAll] = useState(false)
 
   const { total, slices } = useMemo(() => buildSlices(transactions, type), [transactions, type])
   const activeSlice = slices.find((slice) => slice.name === active)
 
   return (
-    <section className="section-block">
-      <div className="section-header">
-        <h2>{type === 'expense' ? 'Spending' : 'Income'} by category</h2>
+    <div className="insights-panel">
+      <div className="insights-toolbar">
         <div className="segmented chart-switch" role="group" aria-label="Chart type">
           {['expense', 'income'].map((value) => (
             <button
@@ -139,24 +139,31 @@ export default function CategoryPieChart({ transactions, currency }) {
             </div>
           </div>
 
-          <ul className="pie-legend">
-            {slices.map((slice) => (
-              <li
-                key={slice.name}
-                className={active === slice.name ? 'active' : ''}
-                onMouseEnter={() => setActive(slice.name)}
-                onMouseLeave={() => setActive(null)}
-                title={slice.members ? slice.members.join(', ') : undefined}
-              >
-                <span className="pie-swatch" style={{ background: slice.color }} />
-                <span className="pie-legend-name">{slice.name}</span>
-                <span className="pie-legend-value">{formatCurrency(slice.amount, currency)}</span>
-                <span className="pie-legend-share">{formatShare(slice.share)}</span>
-              </li>
-            ))}
-          </ul>
+          <div>
+            <ul className={`pie-legend${showAll ? '' : ' collapsed'}`}>
+              {slices.map((slice) => (
+                <li
+                  key={slice.name}
+                  className={active === slice.name ? 'active' : ''}
+                  onMouseEnter={() => setActive(slice.name)}
+                  onMouseLeave={() => setActive(null)}
+                  title={slice.members ? slice.members.join(', ') : undefined}
+                >
+                  <span className="pie-swatch" style={{ background: slice.color }} />
+                  <span className="pie-legend-name">{slice.name}</span>
+                  <span className="pie-legend-value">{formatCurrency(slice.amount, currency)}</span>
+                  <span className="pie-legend-share">{formatShare(slice.share)}</span>
+                </li>
+              ))}
+            </ul>
+            {slices.length > 3 && (
+              <button type="button" className="link-button pie-legend-more" onClick={() => setShowAll((v) => !v)}>
+                {showAll ? 'Show less' : `Show all ${slices.length}`}
+              </button>
+            )}
+          </div>
         </div>
       )}
-    </section>
+    </div>
   )
 }
