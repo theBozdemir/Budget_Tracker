@@ -40,6 +40,7 @@ export default function HouseholdDetailPage() {
   const [household, setHousehold] = useState(null)
   const [transactions, setTransactions] = useState([])
   const [invites, setInvites] = useState([])
+  const [members, setMembers] = useState([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [acting, setActing] = useState(false)
@@ -75,6 +76,11 @@ export default function HouseholdDetailPage() {
       setHousehold(householdData)
       setTransactions(txs)
       setInvites(pendingInvites)
+      try {
+        setMembers(await fetchHouseholdMembers(householdData, user.uid, profile, user))
+      } catch {
+        // The header falls back to the member count when names can't be loaded
+      }
     } catch (err) {
       if (!silent) setHousehold(null)
       setError(firestoreErrorMessage(err))
@@ -249,7 +255,42 @@ export default function HouseholdDetailPage() {
     <div className="page">
       <Link to="/" className="back-link">← Households</Link>
       <header className="page-header">
-        <h1>{household.name}</h1>
+        <div className="page-title-block">
+          <h1>{household.name}</h1>
+          <div className="members-popover-anchor">
+            <MembersBar
+              members={members}
+              memberCount={household.memberIds?.length || members.length || 1}
+              inviteCount={invites.length}
+              expanded={showMembers}
+              onOpen={() => setShowMembers((open) => !open)}
+              onInvite={() => setShowInvite(true)}
+            />
+            {showMembers && (
+              <>
+                <button
+                  type="button"
+                  className="popover-backdrop"
+                  aria-label="Close members list"
+                  onClick={() => setShowMembers(false)}
+                />
+                <MembersPopover
+                  household={household}
+                  user={user}
+                  profile={profile}
+                  members={members}
+                  invites={invites}
+                  onCancelInvite={handleCancelInvite}
+                  onInvite={() => {
+                    setShowMembers(false)
+                    setShowInvite(true)
+                  }}
+                  onClose={() => setShowMembers(false)}
+                />
+              </>
+            )}
+          </div>
+        </div>
         <button className="btn small primary" onClick={() => setShowAdd(true)}>+ Add</button>
       </header>
 
@@ -285,84 +326,6 @@ export default function HouseholdDetailPage() {
         dateFrom={filterDateFrom}
         dateTo={filterDateTo}
       />
-
-      <section className="section-block">
-        <div className="section-header">
-          <h2>Members</h2>
-          <div className="section-header-actions">
-            <div className="members-popover-anchor">
-              <button
-                type="button"
-                className="btn small"
-                aria-expanded={showMembers}
-                onClick={() => setShowMembers((open) => !open)}
-              >
-                View
-              </button>
-              {showMembers && (
-                <>
-                  <button
-                    type="button"
-                    className="popover-backdrop"
-                    aria-label="Close members list"
-                    onClick={() => setShowMembers(false)}
-                  />
-                  <MembersPopover
-                    household={household}
-                    user={user}
-                    profile={profile}
-                    onClose={() => setShowMembers(false)}
-                  />
-                </>
-              )}
-            </div>
-            <button type="button" className="btn small" onClick={() => setShowInvite(true)}>
-              Invite
-            </button>
-          </div>
-        </div>
-        <p className="muted small">Any member can invite others. Invites are only for this household.</p>
-        {invites.length > 0 && (
-          <div className="card-list compact">
-            {invites.map((invite) => (
-              <div key={invite.id} className="inline-card invite-card">
-                <div>
-                  <strong>{invite.email}</strong>
-                  <p className="muted small">Invited by {invite.invitedByName}</p>
-                  {invite.token && (
-                    <p className="muted small invite-link-preview">
-                      {buildInviteLink({ inviteId: invite.id, token: invite.token, email: invite.email })}
-                    </p>
-                  )}
-                </div>
-                <div className="invite-actions">
-                  <span className="badge invite-badge">Pending</span>
-                  {invite.token ? (
-                    <a
-                      className="btn primary"
-                      href={buildInviteMailtoUrl({
-                        householdName: household.name,
-                        inviteEmail: invite.email,
-                        link: buildInviteLink({ inviteId: invite.id, token: invite.token, email: invite.email }),
-                        inviterName: profile?.displayName || user.displayName || 'Someone',
-                      })}
-                    >
-                      Email
-                    </a>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="btn danger"
-                    onClick={() => handleCancelInvite(invite)}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
 
       <CategorySettings
         household={household}
@@ -493,34 +456,54 @@ export default function HouseholdDetailPage() {
   )
 }
 
-function MembersPopover({ household, user, profile, onClose }) {
-  const [members, setMembers] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+const AVATAR_LIMIT = 4
 
-  useEffect(() => {
-    let cancelled = false
+function initialFor(name) {
+  return (name || '?').trim().charAt(0).toUpperCase() || '?'
+}
 
-    async function loadMembers() {
-      setLoading(true)
-      setError('')
-      try {
-        await ensureMemberRecord(household.id, user, profile)
-        const result = await fetchHouseholdMembers(household, user.uid, profile, user)
-        if (!cancelled) setMembers(result)
-      } catch (err) {
-        if (!cancelled) setError(firestoreErrorMessage(err))
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
+function MembersBar({ members, memberCount, inviteCount, expanded, onOpen, onInvite }) {
+  const shown = members.slice(0, AVATAR_LIMIT)
+  const extra = memberCount - shown.length
 
-    loadMembers()
-    return () => {
-      cancelled = true
-    }
-  }, [household, user, profile])
+  return (
+    <div className="members-bar">
+      <button
+        type="button"
+        className="members-bar-open"
+        aria-expanded={expanded}
+        aria-label="Show household members"
+        onClick={onOpen}
+      >
+        {shown.length > 0 && (
+          <span className="avatar-stack" aria-hidden="true">
+            {shown.map((member) => (
+              <span key={member.userId} className="avatar-stack-item" title={member.name}>
+                {initialFor(member.name)}
+              </span>
+            ))}
+            {extra > 0 && <span className="avatar-stack-item more">+{extra}</span>}
+          </span>
+        )}
+        <span className="members-bar-text">
+          {memberCount} {memberCount === 1 ? 'member' : 'members'}
+          {inviteCount > 0 && (
+            <span className="members-bar-pending">
+              {' · '}
+              {inviteCount} pending
+              <span className="hide-narrow"> {inviteCount === 1 ? 'invite' : 'invites'}</span>
+            </span>
+          )}
+        </span>
+      </button>
+      <button type="button" className="avatar-add" aria-label="Invite a member" title="Invite a member" onClick={onInvite}>
+        +
+      </button>
+    </div>
+  )
+}
 
+function MembersPopover({ household, user, profile, members, invites, onCancelInvite, onInvite, onClose }) {
   useEffect(() => {
     function handleKeyDown(event) {
       if (event.key === 'Escape') onClose()
@@ -529,6 +512,8 @@ function MembersPopover({ household, user, profile, onClose }) {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [onClose])
+
+  const inviterName = profile?.displayName || user.displayName || 'Someone'
 
   return (
     <div className="members-popover" role="dialog" aria-label="Household members">
@@ -539,29 +524,64 @@ function MembersPopover({ household, user, profile, onClose }) {
         </button>
       </div>
 
-      {loading && <p className="muted small">Loading members...</p>}
-      {error && <p className="error-text small">{error}</p>}
-
-      {!loading && !error && members.length === 0 && (
-        <p className="muted small">No members found.</p>
-      )}
-
-      {!loading && !error && members.length > 0 && (
+      {members.length === 0 ? (
+        <p className="muted small">Could not load member details.</p>
+      ) : (
         <ul className="members-popover-list">
           {members.map((member) => (
-              <li key={member.userId} className="members-popover-item">
-                <div className="member-avatar">{member.name.charAt(0).toUpperCase()}</div>
+            <li key={member.userId} className="members-popover-item">
+              <div className="member-avatar">{initialFor(member.name)}</div>
+              <div className="member-details">
+                <div className="member-name-row">
+                  <span className="member-name">{member.name}</span>
+                  {member.isOwner && <span className="badge member-badge">Owner</span>}
+                </div>
+                {member.email && <span className="muted small member-email">{member.email}</span>}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {invites.length > 0 && (
+        <>
+          <p className="members-popover-subheading">Pending invites</p>
+          <ul className="members-popover-list">
+            {invites.map((invite) => (
+              <li key={invite.id} className="members-popover-item invite-item">
+                <div className="member-avatar pending">{initialFor(invite.email)}</div>
                 <div className="member-details">
-                  <div className="member-name-row">
-                    <span className="member-name">{member.name}</span>
-                    {member.isOwner && <span className="badge member-badge">Owner</span>}
+                  <span className="member-name member-email">{invite.email}</span>
+                  <span className="muted small">Invited by {invite.invitedByName}</span>
+                  <div className="invite-item-actions">
+                    {invite.token && (
+                      <a
+                        className="link-button"
+                        href={buildInviteMailtoUrl({
+                          householdName: household.name,
+                          inviteEmail: invite.email,
+                          link: buildInviteLink({ inviteId: invite.id, token: invite.token, email: invite.email }),
+                          inviterName,
+                        })}
+                      >
+                        Email again
+                      </a>
+                    )}
+                    <button type="button" className="link-button danger" onClick={() => onCancelInvite(invite)}>
+                      Cancel
+                    </button>
                   </div>
-                  {member.email && <span className="muted small member-email">{member.email}</span>}
                 </div>
               </li>
             ))}
-        </ul>
+          </ul>
+        </>
       )}
+
+      <button type="button" className="btn small primary full members-popover-invite" onClick={onInvite}>
+        + Invite someone
+      </button>
+      <p className="muted small members-popover-note">Invites are only for this household.</p>
     </div>
   )
 }
