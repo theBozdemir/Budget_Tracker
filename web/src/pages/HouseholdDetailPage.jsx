@@ -256,41 +256,17 @@ export default function HouseholdDetailPage() {
     <div className="page">
       <Link to="/" className="back-link">← Households</Link>
       <header className="page-header household-header">
-        <div className="page-title-block">
+        <div className="household-title">
           <h1>{household.name}</h1>
-          <div className="members-popover-anchor">
-            <MembersBar
-              members={members}
-              memberCount={household.memberIds?.length || members.length || 1}
-              inviteCount={invites.length}
-              expanded={showMembers}
-              onOpen={() => setShowMembers((open) => !open)}
-              onInvite={() => setShowInvite(true)}
-            />
-            {showMembers && (
-              <>
-                <button
-                  type="button"
-                  className="popover-backdrop"
-                  aria-label="Close members list"
-                  onClick={() => setShowMembers(false)}
-                />
-                <MembersPopover
-                  household={household}
-                  user={user}
-                  profile={profile}
-                  members={members}
-                  invites={invites}
-                  onCancelInvite={handleCancelInvite}
-                  onInvite={() => {
-                    setShowMembers(false)
-                    setShowInvite(true)
-                  }}
-                  onClose={() => setShowMembers(false)}
-                />
-              </>
-            )}
-          </div>
+          <button
+            type="button"
+            className="avatar-add"
+            aria-label="Invite a member"
+            title="Invite a member"
+            onClick={() => setShowInvite(true)}
+          >
+            +
+          </button>
         </div>
         <div className="page-header-actions">
           <button
@@ -304,6 +280,27 @@ export default function HouseholdDetailPage() {
           </button>
           <button className="btn small primary" onClick={() => setShowAdd(true)}>+ Add</button>
         </div>
+        <button
+          type="button"
+          className="members-toggle"
+          aria-expanded={showMembers}
+          aria-controls="members-card"
+          onClick={() => setShowMembers((open) => !open)}
+        >
+          {memberCountLabel(household.memberIds?.length || members.length || 1)}
+          <span className={`insights-chevron${showMembers ? ' open' : ''}`} aria-hidden="true">▾</span>
+        </button>
+        {showMembers && (
+          <MembersCard
+            household={household}
+            user={user}
+            profile={profile}
+            members={members}
+            invites={invites}
+            onCancelInvite={handleCancelInvite}
+            onInvite={() => setShowInvite(true)}
+          />
+        )}
       </header>
 
       <ErrorBanner message={error} onDismiss={() => setError('')} />
@@ -435,73 +432,20 @@ export default function HouseholdDetailPage() {
   )
 }
 
-const AVATAR_LIMIT = 4
-
 function initialFor(name) {
   return (name || '?').trim().charAt(0).toUpperCase() || '?'
 }
 
-function MembersBar({ members, memberCount, inviteCount, expanded, onOpen, onInvite }) {
-  const shown = members.slice(0, AVATAR_LIMIT)
-  const extra = memberCount - shown.length
-
-  return (
-    <div className="members-bar">
-      <button
-        type="button"
-        className="members-bar-open"
-        aria-expanded={expanded}
-        aria-label="Show household members"
-        onClick={onOpen}
-      >
-        {shown.length > 0 && (
-          <span className="avatar-stack" aria-hidden="true">
-            {shown.map((member) => (
-              <span key={member.userId} className="avatar-stack-item" title={member.name}>
-                {initialFor(member.name)}
-              </span>
-            ))}
-            {extra > 0 && <span className="avatar-stack-item more">+{extra}</span>}
-          </span>
-        )}
-        <span className="members-bar-text">
-          {memberCount} {memberCount === 1 ? 'member' : 'members'}
-          {inviteCount > 0 && (
-            <span className="members-bar-pending">
-              {' · '}
-              {inviteCount} pending
-              <span className="hide-narrow"> {inviteCount === 1 ? 'invite' : 'invites'}</span>
-            </span>
-          )}
-        </span>
-      </button>
-      <button type="button" className="avatar-add" aria-label="Invite a member" title="Invite a member" onClick={onInvite}>
-        +
-      </button>
-    </div>
-  )
+function memberCountLabel(count) {
+  return `${count} ${count === 1 ? 'member' : 'members'}`
 }
 
-function MembersPopover({ household, user, profile, members, invites, onCancelInvite, onInvite, onClose }) {
-  useEffect(() => {
-    function handleKeyDown(event) {
-      if (event.key === 'Escape') onClose()
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
-
+function MembersCard({ household, user, profile, members, invites, onCancelInvite, onInvite }) {
   const inviterName = profile?.displayName || user.displayName || 'Someone'
 
   return (
-    <div className="members-popover" role="dialog" aria-label="Household members">
-      <div className="members-popover-header">
-        <strong>Household Members</strong>
-        <button type="button" className="popover-close" onClick={onClose} aria-label="Close">
-          ×
-        </button>
-      </div>
+    <div id="members-card" className="members-card">
+      <p className="members-popover-subheading first">In this household</p>
 
       {members.length === 0 ? (
         <p className="muted small">Could not load member details.</p>
