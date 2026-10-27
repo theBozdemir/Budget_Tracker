@@ -1742,3 +1742,33 @@ label.checkbox-row input {
 .load-more p {
   margin: 0;
 }
+
+.section-header {
+  margin-bottom: 10px;
+}
+
+.section-header h2 {
+  margin: 0;
+}
+
+.transactions-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+label.page-size-select {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  font-weight: 400;
+  color: #4b5563;
+}
+
+label.page-size-select select {
+  width: auto;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: var(--text-sm);
+}

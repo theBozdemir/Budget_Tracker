@@ -54,7 +54,8 @@ export default function HouseholdDetailPage() {
   const [filterMemberId, setFilterMemberId] = useState('all')
   const [filterDateFrom, setFilterDateFrom] = useState('')
   const [filterDateTo, setFilterDateTo] = useState('')
-  const [visibleCount, setVisibleCount] = useState(TRANSACTIONS_PAGE_SIZE)
+  const [pageSize, setPageSize] = useState(readPageSize)
+  const [visibleCount, setVisibleCount] = useState(pageSize)
 
   async function load({ silent = false } = {}) {
     if (!silent) setLoading(true)
@@ -111,12 +112,12 @@ export default function HouseholdDetailPage() {
     [transactions, filters]
   )
 
-  // Start again from the newest entries whenever the filters change
+  // Start again from the newest entries whenever the filters or list size change
   useEffect(() => {
-    setVisibleCount(TRANSACTIONS_PAGE_SIZE)
-  }, [filters])
+    setVisibleCount(pageSize)
+  }, [filters, pageSize])
 
-  const visibleTransactions = filteredTransactions.slice(0, visibleCount)
+  const visibleTransactions = visibleCount === 0 ? filteredTransactions : filteredTransactions.slice(0, visibleCount)
   const hiddenCount = filteredTransactions.length - visibleTransactions.length
 
   const summary = summarize(filteredTransactions)
@@ -350,9 +351,29 @@ export default function HouseholdDetailPage() {
       <section className="section-block">
         <div className="section-header">
           <h2>Transactions</h2>
-          <button type="button" className="btn small" onClick={() => setShowFilters((v) => !v)}>
-            {showFilters ? 'Hide filters' : 'Filter'}
-          </button>
+          <div className="transactions-tools">
+            <label className="page-size-select">
+              Show
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  const size = Number(e.target.value)
+                  setPageSize(size)
+                  savePageSize(size)
+                }}
+              >
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
+                <option value={0}>All</option>
+              </select>
+            </label>
+            <button type="button" className="btn small" onClick={() => setShowFilters((v) => !v)}>
+              {showFilters ? 'Hide filters' : 'Filter'}
+            </button>
+          </div>
         </div>
 
         {showFilters && (
@@ -402,9 +423,9 @@ export default function HouseholdDetailPage() {
                 <button
                   type="button"
                   className="btn"
-                  onClick={() => setVisibleCount((count) => count + TRANSACTIONS_PAGE_SIZE)}
+                  onClick={() => setVisibleCount((count) => count + LOAD_MORE_STEP)}
                 >
-                  Load {Math.min(hiddenCount, TRANSACTIONS_PAGE_SIZE)} more
+                  Load {Math.min(hiddenCount, LOAD_MORE_STEP)} more
                 </button>
               )}
             </div>
@@ -452,7 +473,28 @@ export default function HouseholdDetailPage() {
   )
 }
 
-const TRANSACTIONS_PAGE_SIZE = 10
+const LOAD_MORE_STEP = 10
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
+const PAGE_SIZE_KEY = 'transactions.pageSize'
+
+// 0 means "show all"
+function readPageSize() {
+  try {
+    const stored = localStorage.getItem(PAGE_SIZE_KEY)
+    const saved = stored === null ? NaN : Number(stored)
+    return saved === 0 || PAGE_SIZE_OPTIONS.includes(saved) ? saved : PAGE_SIZE_OPTIONS[0]
+  } catch {
+    return PAGE_SIZE_OPTIONS[0]
+  }
+}
+
+function savePageSize(size) {
+  try {
+    localStorage.setItem(PAGE_SIZE_KEY, String(size))
+  } catch {
+    // The choice just won't be remembered
+  }
+}
 
 function initialFor(name) {
   return (name || '?').trim().charAt(0).toUpperCase() || '?'
