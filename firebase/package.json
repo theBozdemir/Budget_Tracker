@@ -2,9 +2,12 @@
   "scripts": {
     "build:web": "cd ../web && npm run build",
     "predeploy": "npm run build:web",
-    "deploy": "firebase deploy --only hosting"
+    "deploy": "firebase deploy --only hosting",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-budget-tracker \"node --test tests/*.test.mjs\""
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "6.0.0",
+    "firebase": "13.0.0",
     "firebase-tools": "^15.27.0"
   }
 }

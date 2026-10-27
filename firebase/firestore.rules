@@ -47,11 +47,42 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/households/$(householdId)).data.createdBy;
     }
 
-    function isJoiningMemberIds() {
-      return resource.data.memberIds != null &&
-        request.auth.uid in request.resource.data.memberIds &&
-        !(request.auth.uid in resource.data.memberIds) &&
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // Leaving: exactly the signed-in user removed from memberIds, nobody else
+    function removesOnlySelf() {
+      return request.auth.uid in resource.data.memberIds &&
+        resource.data.memberIds.removeAll([request.auth.uid]).toSet() == request.resource.data.memberIds.toSet() &&
+        request.resource.data.memberIds.size() == resource.data.memberIds.size() - 1;
+    }
+
+    // Joining: exactly the signed-in user added to memberIds, nobody else
+    function addsOnlySelf() {
+      return !(request.auth.uid in resource.data.memberIds) &&
+        request.resource.data.memberIds.toSet() == resource.data.memberIds.concat([request.auth.uid]).toSet() &&
         request.resource.data.memberIds.size() == resource.data.memberIds.size() + 1;
+    }
+
+    function isStringUpTo(value, maxLength) {
+      return value is string && value.size() <= maxLength;
+    }
+
+    function validTransaction(data) {
+      return data.keys().hasAll(['householdId', 'amount', 'type', 'category', 'createdBy']) &&
+        data.keys().hasOnly([
+          'householdId', 'amount', 'type', 'category', 'note',
+          'timestamp', 'createdBy', 'createdByName', 'createdAt'
+        ]) &&
+        data.householdId is string &&
+        data.amount is number && data.amount > -1000000000000 && data.amount < 1000000000000 &&
+        data.type in ['expense', 'income'] &&
+        isStringUpTo(data.category, 100) && data.category.size() > 0 &&
+        (!('note' in data) || isStringUpTo(data.note, 1000)) &&
+        (!('createdByName' in data) || isStringUpTo(data.createdByName, 100)) &&
+        (!('timestamp' in data) || data.timestamp is timestamp) &&
+        (!('createdAt' in data) || data.createdAt is timestamp);
     }
 
     function validPendingInvite(inviteId, householdId) {
@@ -69,7 +100,8 @@ service cloud.firestore {
     }
 
     match /inviteLinks/{token} {
-      allow read: if isSignedIn();
+      // Only fetch by the token from an invite link; never list them all
+      allow get: if isSignedIn();
       allow create: if isSignedIn() &&
         request.resource.data.inviteId is string &&
         request.resource.data.email is string &&
@@ -77,10 +109,10 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/invites/$(request.resource.data.inviteId)) &&
         inviteDoc(request.resource.data.inviteId).status == 'pending' &&
         isHouseholdMember(inviteDoc(request.resource.data.inviteId).householdId);
+      // The app deletes the invite first, so check the household stored on the link itself
       allow delete: if isSignedIn() &&
-        resource.data.inviteId is string &&
-        exists(/databases/$(database)/documents/invites/$(resource.data.inviteId)) &&
-        isHouseholdMember(inviteDoc(resource.data.inviteId).householdId);
+        resource.data.householdId is string &&
+        isHouseholdMember(resource.data.householdId);
     }
 
     match /households/{householdId} {
@@ -89,12 +121,30 @@ service cloud.firestore {
         (resource.data.memberIds != null && request.auth.uid in resource.data.memberIds)
       );
       allow create: if isSignedIn() &&
-        request.auth.uid in request.resource.data.memberIds &&
-        request.resource.data.createdBy == request.auth.uid;
-      allow update: if isSignedIn() && (
-        (resource.data.memberIds != null && request.auth.uid in resource.data.memberIds) ||
-        (isMemberViaSubcollection(householdId) && isJoiningMemberIds())
-      );
+        request.resource.data.memberIds == [request.auth.uid] &&
+        request.resource.data.createdBy == request.auth.uid &&
+        isStringUpTo(request.resource.data.name, 100);
+      // Members can change settings and leave; joiners can only add themselves.
+      // Nobody can change who created the household or add/remove other people.
+      allow update: if isSignedIn() &&
+        resource.data.memberIds != null &&
+        request.resource.data.memberIds is list &&
+        !changedKeys().hasAny(['createdBy', 'createdAt']) &&
+        (
+          (
+            request.auth.uid in resource.data.memberIds &&
+            changedKeys().hasOnly([
+              'name', 'currency', 'expenseCategories', 'incomeCategories',
+              'pendingInviteEmails', 'joinInviteFor', 'memberIds'
+            ]) &&
+            (!changedKeys().hasAny(['memberIds']) || removesOnlySelf())
+          ) ||
+          (
+            isMemberViaSubcollection(householdId) &&
+            changedKeys().hasOnly(['memberIds']) &&
+            addsOnlySelf()
+          )
+        );
       allow delete: if isSignedIn() &&
         resource.data.createdBy == request.auth.uid;
 
@@ -117,13 +167,13 @@ service cloud.firestore {
               !exists(/databases/$(database)/documents/households/$(householdId)/members/$(memberUserId))
             )
           );
-        allow update: if isSignedIn() && request.auth.uid == memberUserId;
+        allow update: if isSignedIn() &&
+          request.auth.uid == memberUserId &&
+          !changedKeys().hasAny(['userId']);
+        // Leave yourself, or the household creator cleans up when deleting the household
         allow delete: if isSignedIn() && (
           request.auth.uid == memberUserId ||
-          (
-            get(/databases/$(database)/documents/households/$(householdId)).data.memberIds != null &&
-            request.auth.uid in get(/databases/$(database)/documents/households/$(householdId)).data.memberIds
-          )
+          householdCreator(householdId) == request.auth.uid
         );
       }
     }
@@ -131,6 +181,7 @@ service cloud.firestore {
     match /transactions/{transactionId} {
       allow read: if isSignedIn() && isHouseholdMember(resource.data.householdId);
       allow create: if isSignedIn() &&
+        validTransaction(request.resource.data) &&
         isHouseholdMember(request.resource.data.householdId) &&
         request.resource.data.createdBy == request.auth.uid;
       allow delete: if isSignedIn() &&
@@ -149,15 +200,14 @@ service cloud.firestore {
       allow create: if isSignedIn() &&
         isHouseholdMember(request.resource.data.householdId) &&
         request.resource.data.invitedBy == request.auth.uid &&
-        request.resource.data.status == 'pending';
-      allow update: if isSignedIn() && (
-        (
-          resource.data.email == accountEmail() &&
-          resource.data.status == 'pending' &&
-          request.resource.data.status in ['accepted', 'declined']
-        ) ||
-        isHouseholdMember(resource.data.householdId)
-      );
+        request.resource.data.status == 'pending' &&
+        isStringUpTo(request.resource.data.email, 254);
+      // Only the invited person answers an invite, and only the status changes
+      allow update: if isSignedIn() &&
+        resource.data.email == accountEmail() &&
+        resource.data.status == 'pending' &&
+        request.resource.data.status in ['accepted', 'declined'] &&
+        changedKeys().hasOnly(['status', 'acceptedAt', 'declinedAt']);
       allow delete: if isSignedIn() &&
         isHouseholdMember(resource.data.householdId);
     }
