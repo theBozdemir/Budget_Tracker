@@ -54,6 +54,7 @@ export default function HouseholdDetailPage() {
   const [filterMemberId, setFilterMemberId] = useState('all')
   const [filterDateFrom, setFilterDateFrom] = useState('')
   const [filterDateTo, setFilterDateTo] = useState('')
+  const [visibleCount, setVisibleCount] = useState(TRANSACTIONS_PAGE_SIZE)
 
   async function load({ silent = false } = {}) {
     if (!silent) setLoading(true)
@@ -109,6 +110,14 @@ export default function HouseholdDetailPage() {
     () => filterTransactions(transactions, filters),
     [transactions, filters]
   )
+
+  // Start again from the newest entries whenever the filters change
+  useEffect(() => {
+    setVisibleCount(TRANSACTIONS_PAGE_SIZE)
+  }, [filters])
+
+  const visibleTransactions = filteredTransactions.slice(0, visibleCount)
+  const hiddenCount = filteredTransactions.length - visibleTransactions.length
 
   const summary = summarize(filteredTransactions)
   const householdCurrency = household?.currency || DEFAULT_CURRENCY
@@ -373,17 +382,33 @@ export default function HouseholdDetailPage() {
               : 'No transactions match these filters.'}
           </p>
         ) : (
-          <div className="card-list compact">
-            {filteredTransactions.map((tx) => (
-              <TransactionItem
-                key={tx.id}
-                transaction={tx}
-                currency={householdCurrency}
-                canDelete={tx.createdBy === user.uid}
-                onDelete={handleDelete}
-              />
-            ))}
-          </div>
+          <>
+            <div className="card-list compact">
+              {visibleTransactions.map((tx) => (
+                <TransactionItem
+                  key={tx.id}
+                  transaction={tx}
+                  currency={householdCurrency}
+                  canDelete={tx.createdBy === user.uid}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+            <div className="load-more">
+              <p className="muted small">
+                Showing {visibleTransactions.length} of {filteredTransactions.length}
+              </p>
+              {hiddenCount > 0 && (
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => setVisibleCount((count) => count + TRANSACTIONS_PAGE_SIZE)}
+                >
+                  Load {Math.min(hiddenCount, TRANSACTIONS_PAGE_SIZE)} more
+                </button>
+              )}
+            </div>
+          </>
         )}
       </section>
 
@@ -426,6 +451,8 @@ export default function HouseholdDetailPage() {
     </div>
   )
 }
+
+const TRANSACTIONS_PAGE_SIZE = 10
 
 function initialFor(name) {
   return (name || '?').trim().charAt(0).toUpperCase() || '?'
