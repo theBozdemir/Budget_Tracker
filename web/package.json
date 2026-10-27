@@ -13,7 +13,9 @@
     "cap:assets": "capacitor-assets generate --iconBackgroundColor #16a34a --iconBackgroundColorDark #16a34a --splashBackgroundColor #f3f4f6 --splashBackgroundColorDark #111827 --ios --android"
   },
   "dependencies": {
+    "@aparajita/capacitor-biometric-auth": "^10.0.0",
     "@capacitor/android": "^8.5.3",
+    "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.5.3",
     "@capacitor/ios": "^8.5.3",
     "firebase": "^11.0.0",

@@ -39,6 +39,10 @@ export default function PrivacyPage() {
         The app does not use advertising, does not track you across other apps or websites, and does not collect your
         location, contacts or device identifiers.
       </p>
+      <p>
+        If you turn on Face ID or fingerprint lock in the iPhone or Android app, your phone checks your face or
+        fingerprint itself. The app only learns whether the check succeeded; biometric data never leaves your device.
+      </p>
 
       <h2>How we use it</h2>
       <p>

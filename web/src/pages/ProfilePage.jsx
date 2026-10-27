@@ -1,7 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import { authErrorMessage } from '../authErrors'
+import {
+  authenticate,
+  getBiometryInfo,
+  isAppLockEnabled,
+  isAppLockSupported,
+  isCancelError,
+  setAppLockEnabled,
+} from '../appLock'
 
 const MIN_PASSWORD_LENGTH = 6
 const DELETE_CONFIRM_WORD = 'DELETE'
@@ -9,6 +17,22 @@ const DELETE_CONFIRM_WORD = 'DELETE'
 const ICONS = {
   lock: 'M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3',
   trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6',
+  shield: 'M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6zM9 12l2 2 4-4',
+}
+
+function ItemIcon({ name }) {
+  return (
+    <svg className="menu-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d={ICONS[name]}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
 }
 
 function passwordError(err, wrongPasswordMessage) {
@@ -23,16 +47,7 @@ function ProfileItem({ id, icon, label, danger = false, open, onToggle, children
   return (
     <section className={`card profile-section${danger ? ' danger' : ''}`}>
       <button type="button" className="profile-item" aria-expanded={open} aria-controls={id} onClick={onToggle}>
-        <svg className="menu-icon" viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            d={ICONS[icon]}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <ItemIcon name={icon} />
         <span className="profile-item-label">{label}</span>
         <span className={`insights-chevron${open ? ' open' : ''}`} aria-hidden="true">
           ▾
@@ -175,6 +190,79 @@ function ChangePasswordCard() {
   )
 }
 
+function AppLockCard() {
+  const [info, setInfo] = useState(null)
+  const [enabled, setEnabled] = useState(() => isAppLockEnabled())
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    getBiometryInfo()
+      .then((result) => {
+        if (!cancelled) setInfo(result)
+      })
+      .catch(() => {
+        if (!cancelled) setInfo({ available: false, label: '' })
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  if (!info) return null
+
+  const label = info.label === 'Passcode' ? 'App lock' : `${info.label} lock`
+
+  async function handleToggle() {
+    setError('')
+    if (enabled) {
+      setAppLockEnabled(false)
+      setEnabled(false)
+      return
+    }
+    setBusy(true)
+    try {
+      // Make sure unlocking works before relying on it
+      await authenticate(`Confirm to turn on ${label}`)
+      setAppLockEnabled(true)
+      setEnabled(true)
+    } catch (err) {
+      if (!isCancelError(err)) setError(err?.message || 'Could not turn on the lock.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="card profile-section">
+      <div className="profile-item static">
+        <ItemIcon name="shield" />
+        <span className="profile-item-label">
+          {label}
+          <span className="profile-item-hint">
+            {info.available
+              ? `Ask for ${info.label === 'Passcode' ? 'your phone passcode' : info.label} when opening the app`
+              : 'Set up Face ID, a fingerprint or a passcode on this phone to use this'}
+          </span>
+        </span>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={enabled}
+          aria-label={label}
+          className={`switch${enabled ? ' on' : ''}`}
+          disabled={busy || (!info.available && !enabled)}
+          onClick={handleToggle}
+        >
+          <span className="switch-thumb" />
+        </button>
+      </div>
+      {error && <p className="error-text profile-item-error">{error}</p>}
+    </section>
+  )
+}
+
 function DeleteAccountCard() {
   const { deleteAccount } = useAuth()
   const [open, setOpen] = useState(false)
@@ -269,6 +357,7 @@ export default function ProfilePage() {
         <p><strong>Email</strong><br />{user.email}</p>
       </div>
 
+      {isAppLockSupported() && <AppLockCard />}
       <ChangePasswordCard />
       <DeleteAccountCard />
 

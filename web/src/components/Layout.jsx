@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import { fetchPendingInvitesForEmail } from '../services/households'
+import AppLock from './AppLock'
 
 function MenuIcon({ name }) {
   const paths = {
@@ -134,6 +135,8 @@ export default function Layout() {
       <main className="app-main">
         <Outlet />
       </main>
+
+      <AppLock />
     </div>
   )
 }
