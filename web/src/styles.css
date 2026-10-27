@@ -227,11 +227,14 @@ svg {
   border: 1.5px dashed #16a34a;
   background: #fff;
   color: #15803d;
-  font-size: 16px;
-  font-weight: 700;
   cursor: pointer;
   padding: 0;
-  line-height: 1;
+}
+
+.avatar-add svg {
+  display: block;
+  width: 14px;
+  height: 14px;
 }
 
 .avatar-add:hover {
@@ -353,7 +356,6 @@ input[readonly] {
 }
 
 .card-link strong,
-.transaction-top strong,
 .inline-card strong {
   word-break: break-word;
 }
@@ -738,16 +740,51 @@ button.btn.full {
   flex-shrink: 0;
 }
 
-.transaction-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: var(--space-xs);
+.transaction-card {
+  padding: 0;
 }
 
-.transaction-top span {
+.transaction-summary {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 14px var(--space-sm);
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.transaction-category {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transaction-amount {
   flex-shrink: 0;
+  font-weight: 600;
   text-align: right;
+}
+
+.transaction-summary .insights-chevron {
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.transaction-details {
+  border-top: 1px solid #f3f4f6;
+  padding: 4px var(--space-sm) var(--space-sm);
+}
+
+.transaction-details p {
+  margin: 8px 0 0;
+  word-break: break-word;
 }
 
 .modal-backdrop {
