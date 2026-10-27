@@ -5,9 +5,12 @@ xcuserdata/
 
 # Firebase
 GoogleService-Info.plist
+firebase/node_modules/
 firebase/functions/node_modules/
 .firebase/
 firebase-debug.log
+firestore-debug.log
+*-debug.log
 firebase/public/
 
 # Web
