@@ -8,6 +8,8 @@
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
         <string>Budget Tracker</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Budget Tracker uses Face ID to unlock the app when you turn on Face ID lock.</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

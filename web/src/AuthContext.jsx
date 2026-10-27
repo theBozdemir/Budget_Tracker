@@ -15,6 +15,7 @@ import { doc, getDoc } from 'firebase/firestore'
 import { Capacitor } from '@capacitor/core'
 import { auth, db } from './firebase'
 import { APP_URL } from './inviteUtils'
+import { markFreshSignIn } from './appLock'
 import { clearInviteSession, deleteUserProfile, ensureUserProfile } from './services/users'
 import { removeUserFromAllHouseholds, syncMemberRecordsForUser } from './services/households'
 
@@ -57,6 +58,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function signUp(displayName, email, password) {
+    markFreshSignIn()
     const result = await createUserWithEmailAndPassword(auth, email.toLowerCase(), password)
     await updateProfile(result.user, { displayName })
     await result.user.getIdToken(true)
@@ -67,6 +69,7 @@ export function AuthProvider({ children }) {
   }
 
   async function signIn(email, password) {
+    markFreshSignIn()
     const result = await signInWithEmailAndPassword(auth, email.toLowerCase(), password)
     await result.user.getIdToken(true)
     const profileData = await ensureUserProfile(result.user)
