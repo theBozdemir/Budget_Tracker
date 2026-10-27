@@ -18,6 +18,7 @@ function ChangePasswordCard() {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPasswords, setShowPasswords] = useState(false)
+  const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -67,60 +68,98 @@ function ChangePasswordCard() {
     }
   }
 
+  function toggleOpen() {
+    setOpen((current) => {
+      if (current) {
+        setCurrentPassword('')
+        setNewPassword('')
+        setConfirmPassword('')
+        setShowPasswords(false)
+        setError('')
+        setSuccess('')
+      }
+      return !current
+    })
+  }
+
   return (
     <section className="card profile-section">
-      <h2>Change password</h2>
-      <form onSubmit={handleSubmit} className="stack">
-        <label>
-          Current password
-          <input
-            type={inputType}
-            autoComplete="current-password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            required
+      <button
+        type="button"
+        className="profile-item"
+        aria-expanded={open}
+        aria-controls="change-password-panel"
+        onClick={toggleOpen}
+      >
+        <svg className="menu-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
-        </label>
-        <label>
-          New password
-          <input
-            type={inputType}
-            autoComplete="new-password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            minLength={MIN_PASSWORD_LENGTH}
-            required
-          />
-        </label>
-        <label>
-          Confirm new password
-          <input
-            type={inputType}
-            autoComplete="new-password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            minLength={MIN_PASSWORD_LENGTH}
-            required
-          />
-        </label>
-        <label className="checkbox-row">
-          <input type="checkbox" checked={showPasswords} onChange={(e) => setShowPasswords(e.target.checked)} />
-          Show passwords
-        </label>
-
-        {error && <p className="error-text">{error}</p>}
-        {success && <p className="success-text">{success}</p>}
-
-        <button
-          className={`btn${currentPassword && newPassword && confirmPassword ? ' primary' : ''}`}
-          disabled={saving || !currentPassword || !newPassword || !confirmPassword}
-        >
-          {saving ? 'Saving...' : 'Change Password'}
-        </button>
-      </form>
-      <button type="button" className="link-btn" onClick={handleSendReset}>
-        Forgot your current password? Email me a reset link
+        </svg>
+        <span className="profile-item-label">Change password</span>
+        <span className={`insights-chevron${open ? ' open' : ''}`} aria-hidden="true">▾</span>
       </button>
+
+      {open && (
+        <div id="change-password-panel" className="profile-item-panel">
+          <form onSubmit={handleSubmit} className="stack">
+            <label>
+              Current password
+              <input
+                type={inputType}
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                required
+              />
+            </label>
+            <label>
+              New password
+              <input
+                type={inputType}
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                minLength={MIN_PASSWORD_LENGTH}
+                required
+              />
+            </label>
+            <label>
+              Confirm new password
+              <input
+                type={inputType}
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                minLength={MIN_PASSWORD_LENGTH}
+                required
+              />
+            </label>
+            <label className="checkbox-row">
+              <input type="checkbox" checked={showPasswords} onChange={(e) => setShowPasswords(e.target.checked)} />
+              Show passwords
+            </label>
+
+            {error && <p className="error-text">{error}</p>}
+            {success && <p className="success-text">{success}</p>}
+
+            <button
+              className={`btn${currentPassword && newPassword && confirmPassword ? ' primary' : ''}`}
+              disabled={saving || !currentPassword || !newPassword || !confirmPassword}
+            >
+              {saving ? 'Saving...' : 'Change Password'}
+            </button>
+          </form>
+          <button type="button" className="link-btn" onClick={handleSendReset}>
+            Forgot your current password? Email me a reset link
+          </button>
+        </div>
+      )}
     </section>
   )
 }
