@@ -30,7 +30,7 @@ function Avatar({ name, photoURL, size = 'small' }) {
 }
 
 export default function Layout() {
-  const { user, profile, logOut } = useAuth()
+  const { user, profile, emailVerified, logOut } = useAuth()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
   const [inviteCount, setInviteCount] = useState(0)
@@ -39,7 +39,7 @@ export default function Layout() {
   const name = profile?.displayName || user?.displayName || user?.email || 'Account'
 
   useEffect(() => {
-    if (!user) return undefined
+    if (!user || !emailVerified) return undefined
     let cancelled = false
     fetchPendingInvitesForEmail(user, profile)
       .then((invites) => {
@@ -51,7 +51,7 @@ export default function Layout() {
     return () => {
       cancelled = true
     }
-  }, [user, profile, location.pathname])
+  }, [user, profile, emailVerified, location.pathname])
 
   useEffect(() => {
     setMenuOpen(false)

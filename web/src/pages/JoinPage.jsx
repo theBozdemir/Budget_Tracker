@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import ErrorBanner from '../components/ErrorBanner'
+import VerifyEmailNotice from '../components/VerifyEmailNotice'
 import { firestoreErrorMessage } from '../firestoreErrors'
 import {
   clearPendingInviteSession,
@@ -20,7 +21,7 @@ export default function JoinPage() {
   const token = searchParams.get('token')
   const emailHint = searchParams.get('email')?.toLowerCase() || ''
   const navigate = useNavigate()
-  const { user, profile, loading } = useAuth()
+  const { user, profile, emailVerified, loading } = useAuth()
   const [invite, setInvite] = useState(null)
   const [error, setError] = useState('')
   const [acting, setActing] = useState(false)
@@ -45,7 +46,7 @@ export default function JoinPage() {
 
   useEffect(() => {
     async function loadInvite() {
-      if (!user || loading || (!inviteId && !token)) return
+      if (!user || loading || !emailVerified || (!inviteId && !token)) return
       setError('')
       setInvite(null)
       try {
@@ -73,10 +74,10 @@ export default function JoinPage() {
       }
     }
 
-    if (user && !loading && (inviteId || token)) {
+    if (user && !loading && emailVerified && (inviteId || token)) {
       loadInvite()
     }
-  }, [user, profile, inviteId, token, loading, emailHint])
+  }, [user, profile, inviteId, token, loading, emailHint, emailVerified])
 
   async function handleAccept() {
     if (!invite || !user) return
@@ -133,6 +134,8 @@ export default function JoinPage() {
 
         <ErrorBanner message={error} onDismiss={handleDismiss} />
 
+        {user && !emailVerified && <VerifyEmailNotice />}
+
         {invite && (
           <div className="stack">
             <p>
@@ -151,7 +154,7 @@ export default function JoinPage() {
           </div>
         )}
 
-        {!invite && !error && user && (
+        {!invite && !error && user && emailVerified && (
           <p className="muted">Checking invite...</p>
         )}
 
