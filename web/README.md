@@ -80,3 +80,30 @@ Share that link with your wife — she can open it on her iPhone, sign up, and a
 - Filter transactions by income/expense type, category, member, and date range
 - Balance, income & expense summary
 - Same data as iOS app (shared Firebase)
+
+## iPhone and Android apps (Capacitor)
+
+The same web app is packaged as native iPhone and Android apps with [Capacitor](https://capacitorjs.com).
+The native projects live in `web/ios` and `web/android`; their web content is copied from the build in
+`firebase/public`, so every web change ships to both apps after a sync.
+
+| Command (run in `web/`) | What it does |
+|---|---|
+| `npm run cap:sync` | Build the web app and copy it into both native projects |
+| `npm run cap:android` | Build, sync and open the project in Android Studio |
+| `npm run cap:ios` | Build, sync and open the project in Xcode (Mac only) |
+| `npm run cap:assets` | Regenerate app icons and splash screens from `web/assets/` |
+
+### Android (Windows, Mac or Linux)
+1. Install [Android Studio](https://developer.android.com/studio).
+2. `cd web && npm install && npm run cap:android`
+3. In Android Studio, pick an emulator or a connected phone and press **Run**.
+4. For Google Play: **Build → Generate Signed App Bundle** and upload the `.aab` in the Play Console.
+
+### iPhone (needs a Mac with Xcode, or a cloud build service such as Codemagic)
+1. `cd web && npm install && npm run cap:ios`
+2. In Xcode, select the **App** target → **Signing & Capabilities** → choose your Apple Developer team.
+3. Pick a simulator or your iPhone and press **Run**.
+4. For the App Store: **Product → Archive**, then **Distribute App** to upload to TestFlight.
+
+App ID / bundle ID: `com.budgettracker.app` (set in `web/capacitor.config.json`).

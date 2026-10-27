@@ -1,0 +1,12 @@
+{
+  "appId": "com.budgettracker.app",
+  "appName": "Budget Tracker",
+  "webDir": "../firebase/public",
+  "backgroundColor": "#f3f4f6",
+  "ios": {
+    "contentInset": "never"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
