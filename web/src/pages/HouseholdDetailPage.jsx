@@ -27,6 +27,7 @@ import {
   addTransaction,
   deleteTransaction,
   fetchTransactions,
+  updateTransaction,
   filterTransactions,
   hasActiveFilters,
   memberOptionsFromTransactions,
@@ -48,6 +49,7 @@ export default function HouseholdDetailPage() {
   const [showInvite, setShowInvite] = useState(false)
   const [showMembers, setShowMembers] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [editingTransaction, setEditingTransaction] = useState(null)
   const [showFilters, setShowFilters] = useState(false)
   const [filterType, setFilterType] = useState('all')
   const [filterCategories, setFilterCategories] = useState([])
@@ -177,13 +179,18 @@ export default function HouseholdDetailPage() {
   }
 
   async function handleDelete(transaction) {
-    if (!confirm('Delete this entry?')) return
-    try {
-      await deleteTransaction(transaction.id)
-      setTransactions((prev) => prev.filter((t) => t.id !== transaction.id))
-    } catch (err) {
-      setError(err.message)
-    }
+    if (!confirm('Delete this entry? This cannot be undone.')) return false
+    await deleteTransaction(transaction.id)
+    setTransactions((prev) => prev.filter((t) => t.id !== transaction.id))
+    return true
+  }
+
+  function handleEdited(id, changes) {
+    setTransactions((prev) =>
+      prev
+        .map((t) => (t.id === id ? { ...t, ...changes } : t))
+        .sort((a, b) => toDate(b.timestamp) - toDate(a.timestamp))
+    )
   }
 
   async function handleCancelInvite(invite) {
@@ -410,8 +417,8 @@ export default function HouseholdDetailPage() {
                   key={tx.id}
                   transaction={tx}
                   currency={householdCurrency}
-                  canDelete={tx.createdBy === user.uid}
-                  onDelete={handleDelete}
+                  canEdit={tx.createdBy === user.uid || household.createdBy === user.uid}
+                  onEdit={setEditingTransaction}
                 />
               ))}
             </div>
@@ -434,7 +441,7 @@ export default function HouseholdDetailPage() {
       </section>
 
       {showAdd && (
-        <AddTransactionModal
+        <TransactionModal
           household={household}
           user={user}
           profile={profile}
@@ -442,6 +449,23 @@ export default function HouseholdDetailPage() {
           onSaved={async () => {
             setShowAdd(false)
             await load()
+          }}
+        />
+      )}
+
+      {editingTransaction && (
+        <TransactionModal
+          household={household}
+          user={user}
+          profile={profile}
+          transaction={editingTransaction}
+          onClose={() => setEditingTransaction(null)}
+          onSaved={(changes) => {
+            handleEdited(editingTransaction.id, changes)
+            setEditingTransaction(null)
+          }}
+          onDelete={async () => {
+            if (await handleDelete(editingTransaction)) setEditingTransaction(null)
           }}
         />
       )}
@@ -573,7 +597,7 @@ function MembersCard({ household, user, profile, members, invites, onCancelInvit
   )
 }
 
-function TransactionItem({ transaction: tx, currency, canDelete, onDelete }) {
+function TransactionItem({ transaction: tx, currency, canEdit, onEdit }) {
   const [expanded, setExpanded] = useState(false)
   const isIncome = tx.type === 'income'
   const detailsId = `tx-details-${tx.id}`
@@ -599,9 +623,14 @@ function TransactionItem({ transaction: tx, currency, canDelete, onDelete }) {
         <div id={detailsId} className="transaction-details">
           {tx.note && <p>{tx.note}</p>}
           <p className="muted small">{isIncome ? 'Income' : 'Expense'} · {formatDateTime(toDate(tx.timestamp))}</p>
-          <p className="muted small">Added by {tx.createdByName}</p>
-          {canDelete && (
-            <button className="link-btn danger" onClick={() => onDelete(tx)}>Delete</button>
+          <p className="muted small">
+            Added by {tx.createdByName}
+            {tx.updatedAt && ' · edited'}
+          </p>
+          {canEdit && (
+            <button type="button" className="btn small transaction-edit" onClick={() => onEdit(tx)}>
+              Edit
+            </button>
           )}
         </div>
       )}
@@ -883,19 +912,34 @@ function TransactionFilters({
   )
 }
 
-function AddTransactionModal({ household, user, profile, onClose, onSaved }) {
-  const [type, setType] = useState('expense')
-  const expenseCategories = categoriesForHouseholdType(household, 'expense')
-  const incomeCategories = categoriesForHouseholdType(household, 'income')
-  const [amount, setAmount] = useState('')
-  const [category, setCategory] = useState(expenseCategories[0] || 'Other')
-  const [note, setNote] = useState('')
-  const [timestamp, setTimestamp] = useState(toLocalInputValue(new Date()))
+function TransactionModal({ household, user, profile, transaction, onClose, onSaved, onDelete }) {
+  const editing = Boolean(transaction)
+  const [type, setType] = useState(transaction?.type || 'expense')
+  const [amount, setAmount] = useState(transaction ? String(Math.abs(transaction.amount)) : '')
+  const [category, setCategory] = useState(
+    transaction?.category || categoriesForHouseholdType(household, 'expense')[0] || 'Other'
+  )
+  const [note, setNote] = useState(transaction?.note || '')
+  const [timestamp, setTimestamp] = useState(
+    toLocalInputValue(transaction ? toDate(transaction.timestamp) : new Date())
+  )
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  const typeCategories = categoriesForHouseholdType(household, type)
+  // Keep an entry's old category selectable even if it was removed from the list since
+  const categoryOptions =
+    editing && type === transaction.type && !typeCategories.includes(transaction.category)
+      ? [transaction.category, ...typeCategories]
+      : typeCategories
 
   function handleTypeChange(nextType) {
     setType(nextType)
+    if (editing && nextType === transaction.type) {
+      setCategory(transaction.category)
+      return
+    }
     const nextList = categoriesForHouseholdType(household, nextType)
     setCategory(nextList[0] || 'Other')
   }
@@ -907,33 +951,56 @@ function AddTransactionModal({ household, user, profile, onClose, onSaved }) {
       setError('Enter a valid amount')
       return
     }
+    const fields = {
+      amount: parsed,
+      type,
+      category,
+      note: note.trim(),
+      timestamp: new Date(timestamp),
+    }
     setSaving(true)
     setError('')
     try {
-      await addTransaction({
-        householdId: household.id,
-        amount: parsed,
-        type,
-        category,
-        note: note.trim(),
-        timestamp: new Date(timestamp),
-        createdBy: user.uid,
-        createdByName: profile?.displayName || user.displayName || 'User',
-      })
-      await onSaved()
+      if (editing) {
+        await updateTransaction(transaction.id, fields, user.uid)
+        onSaved({ ...fields, updatedAt: new Date(), updatedBy: user.uid })
+      } else {
+        await addTransaction({
+          ...fields,
+          householdId: household.id,
+          createdBy: user.uid,
+          createdByName: profile?.displayName || user.displayName || 'User',
+        })
+        await onSaved()
+      }
     } catch (err) {
-      setError(err.message)
+      setError(firestoreErrorMessage(err))
     } finally {
       setSaving(false)
     }
   }
 
-  const categoryOptions = type === 'income' ? incomeCategories : expenseCategories
+  async function handleDelete() {
+    setDeleting(true)
+    setError('')
+    try {
+      await onDelete()
+    } catch (err) {
+      setError(firestoreErrorMessage(err))
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const busy = saving || deleting
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>Add Entry</h2>
+        <h2>{editing ? 'Edit Entry' : 'Add Entry'}</h2>
+        {editing && (
+          <p className="muted small modal-subtitle">Added by {transaction.createdByName}</p>
+        )}
         <form onSubmit={handleSubmit} className="stack">
           <div className="segmented">
             <button type="button" className={type === 'expense' ? 'active' : ''} onClick={() => handleTypeChange('expense')}>
@@ -965,95 +1032,16 @@ function AddTransactionModal({ household, user, profile, onClose, onSaved }) {
           </label>
           {error && <p className="error-text">{error}</p>}
           <div className="row-actions">
-            <button type="button" className="btn" onClick={onClose}>Cancel</button>
-            <button className="btn primary" disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
-
-function AddTransactionModalOldRemove({ householdId, user, profile, onClose, onSaved }) {
-  const [type, setType] = useState('expense')
-  const [amount, setAmount] = useState('')
-  const [category, setCategory] = useState(categoriesForType('expense')[0])
-  const [note, setNote] = useState('')
-  const [timestamp, setTimestamp] = useState(toLocalInputValue(new Date()))
-  const [error, setError] = useState('')
-  const [saving, setSaving] = useState(false)
-
-  function handleTypeChange(nextType) {
-    setType(nextType)
-    setCategory(categoriesForType(nextType)[0])
-  }
-
-  async function handleSubmit(e) {
-    e.preventDefault()
-    const parsed = Number(amount)
-    if (!parsed || parsed <= 0) {
-      setError('Enter a valid amount')
-      return
-    }
-    setSaving(true)
-    setError('')
-    try {
-      await addTransaction({
-        householdId,
-        amount: parsed,
-        type,
-        category,
-        note: note.trim(),
-        timestamp: new Date(timestamp),
-        createdBy: user.uid,
-        createdByName: profile?.displayName || user.displayName || 'User',
-      })
-      await onSaved()
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>Add Entry</h2>
-        <form onSubmit={handleSubmit} className="stack">
-          <div className="segmented">
-            <button type="button" className={type === 'expense' ? 'active' : ''} onClick={() => handleTypeChange('expense')}>
-              Expense
-            </button>
-            <button type="button" className={type === 'income' ? 'active' : ''} onClick={() => handleTypeChange('income')}>
-              Income
+            <button type="button" className="btn" onClick={onClose} disabled={busy}>Cancel</button>
+            <button className="btn primary" disabled={busy}>
+              {saving ? 'Saving...' : editing ? 'Save Changes' : 'Save'}
             </button>
           </div>
-          <label>
-            Amount
-            <input type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} required />
-          </label>
-          <label>
-            Category
-            <select value={category} onChange={(e) => setCategory(e.target.value)}>
-              {categoriesForType(type).map((item) => (
-                <option key={item} value={item}>{item}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Date & Time
-            <input type="datetime-local" value={timestamp} onChange={(e) => setTimestamp(e.target.value)} required />
-          </label>
-          <label>
-            Note (optional)
-            <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="What was this for?" />
-          </label>
-          {error && <p className="error-text">{error}</p>}
-          <div className="row-actions">
-            <button type="button" className="btn" onClick={onClose}>Cancel</button>
-            <button className="btn primary" disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
-          </div>
+          {editing && onDelete && (
+            <button type="button" className="btn danger full" onClick={handleDelete} disabled={busy}>
+              {deleting ? 'Deleting...' : 'Delete Entry'}
+            </button>
+          )}
         </form>
       </div>
     </div>

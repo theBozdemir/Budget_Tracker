@@ -105,6 +105,7 @@ beforeEach(async () => {
       status: 'pending',
     })
     await setDoc(doc(admin, 'transactions', 'tx-bob'), transaction('bob'))
+    await setDoc(doc(admin, 'transactions', 'tx-alice'), transaction('alice'))
   })
 })
 
@@ -170,8 +171,29 @@ describe('household members', () => {
     await assertFails(setDoc(doc(bob, 'transactions', 't4'), transaction('bob', { isAdmin: true })))
   })
 
-  it('blocks editing transactions after they are saved', async () => {
-    await assertFails(updateDoc(doc(db('bob'), 'transactions', 'tx-bob'), { amount: 1 }))
+  it('blocks editing someone else’s transaction unless you own the household', async () => {
+    await assertFails(
+      updateDoc(doc(db('bob'), 'transactions', 'tx-alice'), { amount: 1, updatedBy: 'bob', updatedAt: serverTimestamp() })
+    )
+  })
+
+  it('blocks edits that move an entry, change who added it, or break its fields', async () => {
+    const bob = db('bob')
+    const ref = doc(bob, 'transactions', 'tx-bob')
+    const stamp = { updatedBy: 'bob', updatedAt: serverTimestamp() }
+    await assertFails(updateDoc(ref, { householdId: 'other', ...stamp }))
+    await assertFails(updateDoc(ref, { createdBy: 'alice', ...stamp }))
+    await assertFails(updateDoc(ref, { createdByName: 'alice', ...stamp }))
+    await assertFails(updateDoc(ref, { amount: 'lots', ...stamp }))
+    await assertFails(updateDoc(ref, { type: 'gift', ...stamp }))
+    await assertFails(updateDoc(ref, { note: 'x'.repeat(5000), ...stamp }))
+    await assertFails(updateDoc(ref, { amount: 10, updatedBy: 'alice', updatedAt: serverTimestamp() }))
+  })
+
+  it('blocks outsiders from editing transactions', async () => {
+    await assertFails(
+      updateDoc(doc(db('eve'), 'transactions', 'tx-bob'), { amount: 1, updatedBy: 'eve', updatedAt: serverTimestamp() })
+    )
   })
 
   it('blocks rewriting an invite to point at someone else', async () => {
@@ -357,6 +379,30 @@ describe('normal app use still works', () => {
       getDocs(query(collection(bob, 'transactions'), where('householdId', '==', HOUSEHOLD)))
     )
     await assertSucceeds(deleteDoc(doc(bob, 'transactions', 'tx-new')))
+  })
+
+  it('allows the person who added an entry to edit it', async () => {
+    await assertSucceeds(
+      updateDoc(doc(db('bob'), 'transactions', 'tx-bob'), {
+        amount: 99.99,
+        type: 'income',
+        category: 'Salary',
+        note: 'Fixed amount',
+        timestamp: new Date(),
+        updatedBy: 'bob',
+        updatedAt: serverTimestamp(),
+      })
+    )
+  })
+
+  it('allows the household owner to edit anyone’s entry', async () => {
+    await assertSucceeds(
+      updateDoc(doc(db('alice'), 'transactions', 'tx-bob'), {
+        category: 'Rent',
+        updatedBy: 'alice',
+        updatedAt: serverTimestamp(),
+      })
+    )
   })
 
   it('allows the household creator to delete any transaction', async () => {

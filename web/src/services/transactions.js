@@ -1,4 +1,4 @@
-import { addDoc, collection, deleteDoc, doc, getDocs, query, serverTimestamp, where } from 'firebase/firestore'
+import { addDoc, collection, deleteDoc, doc, getDocs, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
 import { db } from '../firebase'
 import { toDate } from '../constants'
 
@@ -14,6 +14,15 @@ export async function addTransaction(data) {
   await addDoc(collection(db, 'transactions'), {
     ...data,
     createdAt: serverTimestamp(),
+  })
+}
+
+// Only the entry's own fields change; who added it and when stay as they were
+export async function updateTransaction(id, changes, userId) {
+  await updateDoc(doc(db, 'transactions', id), {
+    ...changes,
+    updatedBy: userId,
+    updatedAt: serverTimestamp(),
   })
 }
 
