@@ -12,7 +12,9 @@ import {
   updateProfile,
 } from 'firebase/auth'
 import { doc, getDoc } from 'firebase/firestore'
+import { Capacitor } from '@capacitor/core'
 import { auth, db } from './firebase'
+import { APP_URL } from './inviteUtils'
 import { clearInviteSession, deleteUserProfile, ensureUserProfile } from './services/users'
 import { removeUserFromAllHouseholds, syncMemberRecordsForUser } from './services/households'
 
@@ -75,8 +77,10 @@ export function AuthProvider({ children }) {
   async function resetPassword(email) {
     const normalized = email.trim().toLowerCase()
     try {
-      // After resetting, Firebase's page offers a "Continue" button back to our login
-      await sendPasswordResetEmail(auth, normalized, { url: `${window.location.origin}/login` })
+      // After resetting, Firebase's page offers a "Continue" button back to our login.
+      // The app shell's own origin isn't a real website, so point it at the hosted app.
+      const origin = Capacitor.isNativePlatform() ? APP_URL : window.location.origin
+      await sendPasswordResetEmail(auth, normalized, { url: `${origin}/login` })
     } catch (error) {
       const code = error?.code || ''
       if (code === 'auth/unauthorized-continue-uri' || code === 'auth/invalid-continue-uri') {

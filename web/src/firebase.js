@@ -1,5 +1,6 @@
+import { Capacitor } from '@capacitor/core'
 import { initializeApp } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
+import { getAuth, indexedDBLocalPersistence, initializeAuth } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 
 const firebaseConfig = {
@@ -13,5 +14,9 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig)
 export default app
-export const auth = getAuth(app)
+// Inside the iOS/Android app shell, getAuth() waits on a sign-in-popup helper
+// iframe that never loads, so set up email/password auth without it
+export const auth = Capacitor.isNativePlatform()
+  ? initializeAuth(app, { persistence: indexedDBLocalPersistence })
+  : getAuth(app)
 export const db = getFirestore(app)
