@@ -1772,3 +1772,12 @@ label.page-size-select select {
   border-radius: 8px;
   font-size: var(--text-sm);
 }
+
+.transaction-edit {
+  margin-top: 10px;
+  width: 100%;
+}
+
+.modal-subtitle {
+  margin: -8px 0 12px;
+}

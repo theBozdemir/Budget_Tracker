@@ -70,7 +70,8 @@ service cloud.firestore {
       return data.keys().hasAll(['householdId', 'amount', 'type', 'category', 'createdBy']) &&
         data.keys().hasOnly([
           'householdId', 'amount', 'type', 'category', 'note',
-          'timestamp', 'createdBy', 'createdByName', 'createdAt'
+          'timestamp', 'createdBy', 'createdByName', 'createdAt',
+          'updatedBy', 'updatedAt'
         ]) &&
         data.householdId is string &&
         data.amount is number && data.amount > -1000000000000 && data.amount < 1000000000000 &&
@@ -79,7 +80,8 @@ service cloud.firestore {
         (!('note' in data) || isStringUpTo(data.note, 1000)) &&
         (!('createdByName' in data) || isStringUpTo(data.createdByName, 100)) &&
         (!('timestamp' in data) || data.timestamp is timestamp) &&
-        (!('createdAt' in data) || data.createdAt is timestamp);
+        (!('createdAt' in data) || data.createdAt is timestamp) &&
+        (!('updatedAt' in data) || data.updatedAt is timestamp);
     }
 
     function validPendingInvite(inviteId, householdId) {
@@ -181,6 +183,17 @@ service cloud.firestore {
         validTransaction(request.resource.data) &&
         isHouseholdMember(request.resource.data.householdId) &&
         request.resource.data.createdBy == request.auth.uid;
+      // The person who added an entry, or the household owner, can edit it.
+      // Which household it belongs to and who added it never change.
+      allow update: if isSignedIn() &&
+        isHouseholdMember(resource.data.householdId) &&
+        (
+          resource.data.createdBy == request.auth.uid ||
+          householdCreator(resource.data.householdId) == request.auth.uid
+        ) &&
+        changedKeys().hasOnly(['amount', 'type', 'category', 'note', 'timestamp', 'updatedBy', 'updatedAt']) &&
+        request.resource.data.updatedBy == request.auth.uid &&
+        validTransaction(request.resource.data);
       allow delete: if isSignedIn() &&
         isHouseholdMember(resource.data.householdId) &&
         (
