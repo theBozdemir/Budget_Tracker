@@ -52,11 +52,10 @@ Open http://localhost:5173
 ```bash
 cd web
 npm install
-npm run build
 
 cd ../firebase
 firebase login
-firebase deploy --only hosting
+npm run deploy
 ```
 
 Your app will be live at:
