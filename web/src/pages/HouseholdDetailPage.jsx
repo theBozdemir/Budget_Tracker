@@ -265,7 +265,9 @@ export default function HouseholdDetailPage() {
             title="Invite a member"
             onClick={() => setShowInvite(true)}
           >
-            +
+            <svg viewBox="0 0 14 14" aria-hidden="true">
+              <path d="M7 1.5v11M1.5 7h11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
           </button>
         </div>
         <div className="page-header-actions">
@@ -373,20 +375,13 @@ export default function HouseholdDetailPage() {
         ) : (
           <div className="card-list compact">
             {filteredTransactions.map((tx) => (
-              <div key={tx.id} className="transaction-card">
-                <div className="transaction-top">
-                  <strong>{tx.category}</strong>
-                  <span className={tx.type === 'income' ? 'positive' : ''}>
-                    {formatCurrency(Math.abs(tx.amount), householdCurrency)}
-                  </span>
-                </div>
-                {tx.note && <p>{tx.note}</p>}
-                <p className="muted small">{formatDateTime(toDate(tx.timestamp))}</p>
-                <p className="muted small">Added by {tx.createdByName}</p>
-                {tx.createdBy === user.uid && (
-                  <button className="link-btn danger" onClick={() => handleDelete(tx)}>Delete</button>
-                )}
-              </div>
+              <TransactionItem
+                key={tx.id}
+                transaction={tx}
+                currency={householdCurrency}
+                canDelete={tx.createdBy === user.uid}
+                onDelete={handleDelete}
+              />
             ))}
           </div>
         )}
@@ -505,6 +500,42 @@ function MembersCard({ household, user, profile, members, invites, onCancelInvit
         + Invite someone
       </button>
       <p className="muted small members-popover-note">Invites are only for this household.</p>
+    </div>
+  )
+}
+
+function TransactionItem({ transaction: tx, currency, canDelete, onDelete }) {
+  const [expanded, setExpanded] = useState(false)
+  const isIncome = tx.type === 'income'
+  const detailsId = `tx-details-${tx.id}`
+
+  return (
+    <div className={`transaction-card${expanded ? ' expanded' : ''}`}>
+      <button
+        type="button"
+        className="transaction-summary"
+        aria-expanded={expanded}
+        aria-controls={detailsId}
+        onClick={() => setExpanded((open) => !open)}
+      >
+        <strong className="transaction-category">{tx.category}</strong>
+        <span className={`transaction-amount ${isIncome ? 'positive' : 'negative'}`}>
+          {isIncome ? '+' : '−'}
+          {formatCurrency(Math.abs(tx.amount), currency)}
+        </span>
+        <span className={`insights-chevron${expanded ? ' open' : ''}`} aria-hidden="true">▾</span>
+      </button>
+
+      {expanded && (
+        <div id={detailsId} className="transaction-details">
+          {tx.note && <p>{tx.note}</p>}
+          <p className="muted small">{isIncome ? 'Income' : 'Expense'} · {formatDateTime(toDate(tx.timestamp))}</p>
+          <p className="muted small">Added by {tx.createdByName}</p>
+          {canDelete && (
+            <button className="link-btn danger" onClick={() => onDelete(tx)}>Delete</button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
