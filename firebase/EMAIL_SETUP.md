@@ -59,14 +59,13 @@ npx firebase deploy --only functions
 
 | Email type | Before | After |
 |------------|--------|-------|
-| Password reset | Firebase noreply → often junk | From your Gmail/SendGrid |
 | Household invites | Not sent (or junk) | From your Gmail/SendGrid |
 
 ---
 
-## Also customize Firebase templates (backup)
+## Password reset emails
 
-If custom SMTP isn't set up yet, improve Firebase's default emails:
+The web app sends password reset emails with Firebase Authentication's built-in sender, so they work on the free plan without SMTP. To make them look better and land in the inbox more often, customize the template:
 
 1. [Authentication → Templates](https://console.firebase.google.com/project/budget-tracker-74611/authentication/emails)
 2. Edit **Password reset**

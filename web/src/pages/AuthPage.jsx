@@ -44,7 +44,10 @@ export default function AuthPage() {
         goAfterAuth()
       } else if (mode === 'reset') {
         await resetPassword(email)
-        setSuccess(`Password reset email sent to ${email.toLowerCase()}. Check your inbox and spam folder.`)
+        setSuccess(
+          `If an account exists for ${email.trim().toLowerCase()}, a reset link is on its way. ` +
+            'Check your inbox and spam folder. The email comes from noreply@budget-tracker-74611.firebaseapp.com.'
+        )
       } else {
         await signIn(email, password)
         goAfterAuth()

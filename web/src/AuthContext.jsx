@@ -1,14 +1,17 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import {
   createUserWithEmailAndPassword,
+  EmailAuthProvider,
   onAuthStateChanged,
+  reauthenticateWithCredential,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
+  updatePassword,
   updateProfile,
 } from 'firebase/auth'
 import { doc, getDoc } from 'firebase/firestore'
-import { auth, db, sendCustomPasswordResetEmail } from './firebase'
+import { auth, db } from './firebase'
 import { clearInviteSession, ensureUserProfile } from './services/users'
 import { syncMemberRecordsForUser } from './services/households'
 
@@ -69,17 +72,26 @@ export function AuthProvider({ children }) {
   }
 
   async function resetPassword(email) {
-    const normalized = email.toLowerCase()
+    const normalized = email.trim().toLowerCase()
     try {
-      await sendCustomPasswordResetEmail(normalized)
+      // After resetting, Firebase's page offers a "Continue" button back to our login
+      await sendPasswordResetEmail(auth, normalized, { url: `${window.location.origin}/login` })
     } catch (error) {
       const code = error?.code || ''
-      if (code === 'functions/failed-precondition' || code === 'functions/not-found') {
+      if (code === 'auth/unauthorized-continue-uri' || code === 'auth/invalid-continue-uri') {
         await sendPasswordResetEmail(auth, normalized)
         return
       }
       throw error
     }
+  }
+
+  async function changePassword(currentPassword, newPassword) {
+    const currentUser = auth.currentUser
+    if (!currentUser?.email) throw new Error('You need to be signed in to change your password.')
+    const credential = EmailAuthProvider.credential(currentUser.email, currentPassword)
+    await reauthenticateWithCredential(currentUser, credential)
+    await updatePassword(currentUser, newPassword)
   }
 
   async function logOut() {
@@ -88,7 +100,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, resetPassword, logOut }}>
+    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, resetPassword, changePassword, logOut }}>
       {children}
     </AuthContext.Provider>
   )
