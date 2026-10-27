@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
   EmailAuthProvider,
   onAuthStateChanged,
   reauthenticateWithCredential,
@@ -12,8 +13,8 @@ import {
 } from 'firebase/auth'
 import { doc, getDoc } from 'firebase/firestore'
 import { auth, db } from './firebase'
-import { clearInviteSession, ensureUserProfile } from './services/users'
-import { syncMemberRecordsForUser } from './services/households'
+import { clearInviteSession, deleteUserProfile, ensureUserProfile } from './services/users'
+import { removeUserFromAllHouseholds, syncMemberRecordsForUser } from './services/households'
 
 const AuthContext = createContext(null)
 
@@ -86,12 +87,25 @@ export function AuthProvider({ children }) {
     }
   }
 
-  async function changePassword(currentPassword, newPassword) {
+  async function reauthenticate(password) {
     const currentUser = auth.currentUser
-    if (!currentUser?.email) throw new Error('You need to be signed in to change your password.')
-    const credential = EmailAuthProvider.credential(currentUser.email, currentPassword)
-    await reauthenticateWithCredential(currentUser, credential)
+    if (!currentUser?.email) throw new Error('You need to be signed in to do this.')
+    await reauthenticateWithCredential(currentUser, EmailAuthProvider.credential(currentUser.email, password))
+    return currentUser
+  }
+
+  async function changePassword(currentPassword, newPassword) {
+    const currentUser = await reauthenticate(currentPassword)
     await updatePassword(currentUser, newPassword)
+  }
+
+  async function deleteAccount(password) {
+    // Re-authenticate first so a wrong password fails before any data is touched
+    const currentUser = await reauthenticate(password)
+    await removeUserFromAllHouseholds(currentUser.uid)
+    await deleteUserProfile(currentUser.uid)
+    clearInviteSession()
+    await deleteUser(currentUser)
   }
 
   async function logOut() {
@@ -100,7 +114,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, resetPassword, changePassword, logOut }}>
+    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, resetPassword, changePassword, deleteAccount, logOut }}>
       {children}
     </AuthContext.Provider>
   )

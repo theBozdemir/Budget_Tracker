@@ -1,4 +1,4 @@
-import { arrayRemove, arrayUnion, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
+import { arrayRemove, arrayUnion, deleteDoc, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 import { clearPendingInviteSession } from '../inviteUtils'
 
@@ -40,3 +40,15 @@ export async function removeJoinedHousehold(userId, householdId) {
 }
 
 export { clearPendingInviteSession as clearInviteSession }
+
+// Remove what we store about the user. The rules allow deleting your own
+// profile; if they haven't been redeployed yet, blank it out instead.
+export async function deleteUserProfile(userId) {
+  const ref = doc(db, 'users', userId)
+  try {
+    await deleteDoc(ref)
+  } catch (error) {
+    if (error?.code !== 'permission-denied') throw error
+    await setDoc(ref, { displayName: '', email: '', joinedHouseholdIds: [], deleted: true })
+  }
+}
