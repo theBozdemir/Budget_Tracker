@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import ErrorBanner from '../components/ErrorBanner'
+import VerifyEmailNotice from '../components/VerifyEmailNotice'
 import { firestoreErrorMessage } from '../firestoreErrors'
 import { acceptInvite, declineInvite, fetchPendingInvitesForEmail } from '../services/households'
 import { normalizedEmail } from '../services/users'
 
 export default function InvitesPage() {
-  const { user, profile, loading: authLoading } = useAuth()
+  const { user, profile, emailVerified, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const [invites, setInvites] = useState([])
   const [error, setError] = useState('')
@@ -27,9 +28,9 @@ export default function InvitesPage() {
   }
 
   useEffect(() => {
-    if (!user || authLoading) return
+    if (!user || authLoading || !emailVerified) return
     load()
-  }, [user?.uid, profile?.email, user?.email, authLoading])
+  }, [user?.uid, profile?.email, user?.email, authLoading, emailVerified])
 
   async function handleAccept(invite) {
     setActingOn(`${invite.id}-accept`)
@@ -63,14 +64,18 @@ export default function InvitesPage() {
     <div className="page">
       <header className="page-header">
         <h1>Invites</h1>
-        <button type="button" className="btn small" onClick={load} disabled={loading}>
-          Refresh
-        </button>
+        {emailVerified && (
+          <button type="button" className="btn small" onClick={load} disabled={loading}>
+            Refresh
+          </button>
+        )}
       </header>
 
       <ErrorBanner message={error} onDismiss={() => setError('')} />
 
-      {loading ? (
+      {!emailVerified ? (
+        <VerifyEmailNotice />
+      ) : loading ? (
         <p className="muted">Loading invites...</p>
       ) : invites.length === 0 ? (
         <div className="empty-card">

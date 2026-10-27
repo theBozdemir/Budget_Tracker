@@ -1719,3 +1719,14 @@ label.checkbox-row input {
 .app-lock-content p {
   margin: 0;
 }
+
+.verify-email-card h2 {
+  margin: 0 0 8px;
+  font-size: var(--text-lg);
+}
+
+.verify-email-card p {
+  margin: 0 0 12px;
+  font-size: var(--text-sm);
+  color: #374151;
+}

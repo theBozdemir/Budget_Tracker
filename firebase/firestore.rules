@@ -7,22 +7,19 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function userEmail() {
-      return request.auth != null && request.auth.token.email != null
+    // The account's email, but only once the person has proved they own it.
+    // Invites are matched by email, so an unverified address must never count:
+    // otherwise anyone could sign up with an invitee's email and take the invite.
+    function accountEmail() {
+      return request.auth != null &&
+        request.auth.token.email != null &&
+        request.auth.token.email_verified == true
         ? request.auth.token.email.lower()
         : '';
     }
 
-    function profileEmail() {
-      return isSignedIn() &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email != null
-        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email.lower()
-        : '';
-    }
-
-    function accountEmail() {
-      return userEmail() != '' ? userEmail() : profileEmail();
+    function isInvitee(inviteEmail) {
+      return accountEmail() != '' && inviteEmail == accountEmail();
     }
 
     function isMemberViaSubcollection(householdId) {
@@ -88,7 +85,7 @@ service cloud.firestore {
     function validPendingInvite(inviteId, householdId) {
       return exists(/databases/$(database)/documents/invites/$(inviteId)) &&
         inviteDoc(inviteId).status == 'pending' &&
-        inviteDoc(inviteId).email == accountEmail() &&
+        isInvitee(inviteDoc(inviteId).email) &&
         inviteDoc(inviteId).householdId == householdId;
     }
 
@@ -194,17 +191,18 @@ service cloud.firestore {
 
     match /invites/{inviteId} {
       allow read: if isSignedIn() && (
-        resource.data.email == accountEmail() ||
+        isInvitee(resource.data.email) ||
         isHouseholdMember(resource.data.householdId)
       );
       allow create: if isSignedIn() &&
         isHouseholdMember(request.resource.data.householdId) &&
         request.resource.data.invitedBy == request.auth.uid &&
         request.resource.data.status == 'pending' &&
-        isStringUpTo(request.resource.data.email, 254);
+        isStringUpTo(request.resource.data.email, 254) &&
+        request.resource.data.email.size() > 3;
       // Only the invited person answers an invite, and only the status changes
       allow update: if isSignedIn() &&
-        resource.data.email == accountEmail() &&
+        isInvitee(resource.data.email) &&
         resource.data.status == 'pending' &&
         request.resource.data.status in ['accepted', 'declined'] &&
         changedKeys().hasOnly(['status', 'acceptedAt', 'declinedAt']);

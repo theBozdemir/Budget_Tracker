@@ -180,6 +180,51 @@ describe('household members', () => {
 })
 
 describe('invited people', () => {
+  it('blocks someone who signed up with the invitee’s email but never verified it', async () => {
+    const impostor = env
+      .authenticatedContext('impostor', { email: 'carol@example.com', email_verified: false })
+      .firestore()
+    await assertFails(getDoc(doc(impostor, 'invites', INVITE)))
+    await assertFails(
+      getDocs(
+        query(
+          collection(impostor, 'invites'),
+          where('email', '==', 'carol@example.com'),
+          where('status', '==', 'pending')
+        )
+      )
+    )
+    await assertFails(
+      setDoc(doc(impostor, 'households', HOUSEHOLD, 'members', 'impostor'), {
+        userId: 'impostor',
+        email: 'carol@example.com',
+        inviteId: INVITE,
+      })
+    )
+    await assertFails(updateDoc(doc(impostor, 'invites', INVITE), { status: 'accepted' }))
+  })
+
+  it('blocks invites with an empty email matching unverified accounts', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'invites', 'blank'), {
+        householdId: HOUSEHOLD,
+        email: '',
+        invitedBy: 'alice',
+        status: 'pending',
+      })
+    })
+    const unverified = env.authenticatedContext('nobody', { email_verified: false }).firestore()
+    await assertFails(getDoc(doc(unverified, 'invites', 'blank')))
+    await assertFails(
+      setDoc(doc(db('bob'), 'invites', 'blank2'), {
+        householdId: HOUSEHOLD,
+        email: '',
+        invitedBy: 'bob',
+        status: 'pending',
+      })
+    )
+  })
+
   it('blocks changing anything but the status when answering an invite', async () => {
     await assertFails(
       updateDoc(doc(db('carol'), 'invites', INVITE), { status: 'accepted', householdId: 'other' })
@@ -261,6 +306,18 @@ describe('normal app use still works', () => {
         pendingInviteEmails: arrayRemove('dan@example.com'),
         joinInviteFor: { 'carol@example.com': INVITE },
       })
+    )
+  })
+
+  it('allows the invited person to see their invites once their email is verified', async () => {
+    await assertSucceeds(
+      getDocs(
+        query(
+          collection(db('carol'), 'invites'),
+          where('email', '==', 'carol@example.com'),
+          where('status', '==', 'pending')
+        )
+      )
     )
   })
 

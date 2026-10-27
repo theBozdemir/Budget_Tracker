@@ -5,6 +5,7 @@ import {
   EmailAuthProvider,
   onAuthStateChanged,
   reauthenticateWithCredential,
+  sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
@@ -21,15 +22,23 @@ import { removeUserFromAllHouseholds, syncMemberRecordsForUser } from './service
 
 const AuthContext = createContext(null)
 
+// Links in Firebase emails return here. The app shell's own origin isn't a real
+// website, so the phone apps point at the hosted app instead.
+function appOrigin() {
+  return Capacitor.isNativePlatform() ? APP_URL : window.location.origin
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [emailVerified, setEmailVerified] = useState(false)
 
   useEffect(() => {
     return onAuthStateChanged(auth, async (firebaseUser) => {
       setLoading(true)
       setUser(firebaseUser)
+      setEmailVerified(Boolean(firebaseUser?.emailVerified))
 
       if (firebaseUser) {
         try {
@@ -61,6 +70,12 @@ export function AuthProvider({ children }) {
     markFreshSignIn()
     const result = await createUserWithEmailAndPassword(auth, email.toLowerCase(), password)
     await updateProfile(result.user, { displayName })
+    try {
+      await sendEmailVerification(result.user, { url: `${appOrigin()}/invites` })
+    } catch (error) {
+      // Not fatal: the Invites page lets people resend the email
+      console.warn('Could not send verification email:', error)
+    }
     await result.user.getIdToken(true)
 
     const profileData = await ensureUserProfile({ ...result.user, displayName })
@@ -77,13 +92,27 @@ export function AuthProvider({ children }) {
     return result.user
   }
 
+  async function resendVerificationEmail() {
+    if (!auth.currentUser) throw new Error('You need to be signed in.')
+    await sendEmailVerification(auth.currentUser, { url: `${appOrigin()}/invites` })
+  }
+
+  // After the person clicks the link in the email, reload the account and get a
+  // fresh ID token so the security rules see email_verified = true
+  async function refreshEmailVerification() {
+    const currentUser = auth.currentUser
+    if (!currentUser) return false
+    await currentUser.reload()
+    await currentUser.getIdToken(true)
+    setEmailVerified(Boolean(currentUser.emailVerified))
+    return Boolean(currentUser.emailVerified)
+  }
+
   async function resetPassword(email) {
     const normalized = email.trim().toLowerCase()
     try {
-      // After resetting, Firebase's page offers a "Continue" button back to our login.
-      // The app shell's own origin isn't a real website, so point it at the hosted app.
-      const origin = Capacitor.isNativePlatform() ? APP_URL : window.location.origin
-      await sendPasswordResetEmail(auth, normalized, { url: `${origin}/login` })
+      // After resetting, Firebase's page offers a "Continue" button back to our login
+      await sendPasswordResetEmail(auth, normalized, { url: `${appOrigin()}/login` })
     } catch (error) {
       const code = error?.code || ''
       if (code === 'auth/unauthorized-continue-uri' || code === 'auth/invalid-continue-uri') {
@@ -121,7 +150,22 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, resetPassword, changePassword, deleteAccount, logOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        loading,
+        emailVerified,
+        signUp,
+        signIn,
+        resetPassword,
+        resendVerificationEmail,
+        refreshEmailVerification,
+        changePassword,
+        deleteAccount,
+        logOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
