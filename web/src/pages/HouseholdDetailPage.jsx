@@ -687,7 +687,11 @@ function CategorySettings({ household, disabled, onUpdate }) {
           placeholder={`Add ${tab} category`}
           disabled={disabled}
         />
-        <button type="submit" className="btn small" disabled={disabled}>
+        <button
+          type="submit"
+          className={`btn small${normalizeCategoryName(newName) ? ' primary' : ''}`}
+          disabled={disabled || !normalizeCategoryName(newName)}
+        >
           Add
         </button>
       </form>
