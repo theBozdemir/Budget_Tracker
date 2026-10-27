@@ -1330,3 +1330,8 @@ button.btn.full {
   border-top: none;
   padding-top: var(--space-sm);
 }
+
+.category-add-form .btn:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
