@@ -1501,3 +1501,29 @@ button.btn.full {
   cursor: default;
   opacity: 0.6;
 }
+
+.profile-section {
+  margin-top: var(--space-md);
+}
+
+.profile-section h2 {
+  margin: 0 0 12px;
+  font-size: var(--text-lg);
+}
+
+label.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+label.checkbox-row input {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  padding: 0;
+  margin: 0;
+  accent-color: #16a34a;
+}

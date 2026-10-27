@@ -15,10 +15,3 @@ const app = initializeApp(firebaseConfig)
 export default app
 export const auth = getAuth(app)
 export const db = getFirestore(app)
-
-export async function sendCustomPasswordResetEmail(email) {
-  const { getFunctions, httpsCallable } = await import('firebase/functions')
-  const functions = getFunctions(app)
-  const sendReset = httpsCallable(functions, 'sendPasswordResetEmailCustom')
-  return sendReset({ email })
-}

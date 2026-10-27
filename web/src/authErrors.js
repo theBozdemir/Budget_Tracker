@@ -13,6 +13,14 @@ export function authErrorMessage(error) {
       return 'Password must be at least 6 characters.'
     case 'auth/invalid-email':
       return 'That email address does not look valid.'
+    case 'auth/missing-email':
+      return 'Enter your email address.'
+    case 'auth/missing-password':
+      return 'Enter your password.'
+    case 'auth/requires-recent-login':
+      return 'For security, sign out and sign in again, then try once more.'
+    case 'auth/network-request-failed':
+      return 'Network error. Check your connection and try again.'
     case 'auth/too-many-requests':
       return 'Too many attempts. Wait a minute and try again.'
     case 'auth/unauthorized-domain':
