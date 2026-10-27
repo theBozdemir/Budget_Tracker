@@ -651,3 +651,17 @@ export async function deleteHousehold(household, userId) {
   await deleteDoc(doc(db, 'households', household.id))
   await removeJoinedHousehold(userId, household.id)
 }
+
+// Delete households the user is alone in and leave the shared ones. Entries the
+// user added to shared households stay, since they belong to that household's budget.
+export async function removeUserFromAllHouseholds(userId) {
+  const households = await fetchHouseholds(userId)
+  for (const household of households) {
+    const otherMembers = (household.memberIds || []).filter((id) => id !== userId)
+    if (otherMembers.length === 0 && household.createdBy === userId) {
+      await deleteHousehold(household, userId)
+    } else {
+      await leaveHousehold(household, userId)
+    }
+  }
+}

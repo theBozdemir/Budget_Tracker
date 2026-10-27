@@ -7,6 +7,7 @@ import HouseholdsPage from './pages/HouseholdsPage'
 import HouseholdDetailPage from './pages/HouseholdDetailPage'
 import InvitesPage from './pages/InvitesPage'
 import ProfilePage from './pages/ProfilePage'
+import PrivacyPage from './pages/PrivacyPage'
 import Layout from './components/Layout'
 
 function ProtectedRoute({ children }) {
@@ -39,6 +40,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginRoute />} />
       <Route path="/join" element={<JoinPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
       <Route
         path="/"
         element={

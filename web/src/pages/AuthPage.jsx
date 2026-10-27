@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import { authErrorMessage } from '../authErrors'
 import { getPendingInviteRedirect, PENDING_INVITE_EMAIL_KEY } from '../inviteUtils'
@@ -139,6 +139,10 @@ export default function AuthPage() {
 
         <p className="hint-text">
           Use the same account on phone or computer. Open in Safari and tap Share → Add to Home Screen.
+        </p>
+
+        <p className="hint-text auth-legal">
+          <Link to="/privacy">Privacy policy</Link>
         </p>
       </div>
     </div>

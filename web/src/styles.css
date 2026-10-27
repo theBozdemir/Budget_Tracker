@@ -1559,3 +1559,75 @@ label.checkbox-row input {
   margin: 0;
   accent-color: #16a34a;
 }
+
+.profile-section.danger .profile-item {
+  color: #b91c1c;
+}
+
+.delete-account-info {
+  font-size: var(--text-sm);
+  color: #4b5563;
+  margin-bottom: var(--space-sm);
+}
+
+.delete-account-info p {
+  margin: 0 0 8px;
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.delete-account-info ul {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+.btn.danger-solid {
+  background: #dc2626;
+  color: #fff;
+  font-weight: 600;
+}
+
+.profile-footer,
+.auth-legal {
+  text-align: center;
+}
+
+.profile-footer a,
+.auth-legal a,
+.legal-page a:not(.back-link) {
+  color: #15803d;
+  text-decoration: underline;
+}
+
+.legal-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding:
+    calc(var(--space-md) + var(--safe-top))
+    calc(var(--space-sm) + var(--safe-right))
+    calc(var(--space-lg) + var(--safe-bottom))
+    calc(var(--space-sm) + var(--safe-left));
+  line-height: 1.6;
+}
+
+.legal-page h1 {
+  margin: 8px 0 4px;
+  font-size: var(--text-xl);
+}
+
+.legal-page h2 {
+  margin: var(--space-md) 0 6px;
+  font-size: var(--text-lg);
+}
+
+.legal-page p,
+.legal-page li {
+  font-size: var(--text-base);
+  color: #374151;
+}
+
+.legal-page ul {
+  padding-left: 20px;
+}
