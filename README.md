@@ -59,6 +59,14 @@ firebase use --add              # select your project
 firebase deploy --only firestore:rules
 ```
 
+Before deploying rule changes, run the security tests. They start a local Firestore emulator (needs Java 21+) and check that every known attack is blocked and every normal app action still works:
+
+```bash
+cd firebase
+npm install
+npm run test:rules
+```
+
 ### Email invites (optional but recommended)
 
 Invites are saved in Firestore immediately. To **send actual emails**, deploy the Cloud Function:
