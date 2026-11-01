@@ -6,6 +6,7 @@ import ErrorBanner from '../components/ErrorBanner'
 import { db } from '../firebase'
 import { firestoreErrorMessage } from '../firestoreErrors'
 import { DEFAULT_CURRENCY, formatCurrency, formatDateTime, HOUSEHOLD_CURRENCIES, toDate } from '../constants'
+import BudgetCard from '../components/BudgetCard'
 import InsightsCard from '../components/InsightsCard'
 import useDragSelect from '../hooks/useDragSelect'
 import {
@@ -29,6 +30,7 @@ import {
   cancelInvite,
   leaveHousehold,
   syncJoinInviteMap,
+  updateHouseholdBudgets,
   updateHouseholdCategories,
   updateHouseholdCurrency,
 } from '../services/households'
@@ -505,6 +507,19 @@ export default function HouseholdDetailPage() {
           </p>
         )}
       </section>
+
+      {!customRange && (
+        <BudgetCard
+          household={household}
+          transactions={transactions}
+          monthKey={selectedMonth}
+          currency={householdCurrency}
+          onSave={async (budgets) => {
+            await updateHouseholdBudgets(household.id, budgets)
+            setHousehold((prev) => ({ ...prev, budgets }))
+          }}
+        />
+      )}
 
       <InsightsCard
         transactions={matchingTransactions}
