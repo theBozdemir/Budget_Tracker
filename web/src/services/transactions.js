@@ -1,4 +1,15 @@
-import { addDoc, collection, deleteDoc, doc, getDocs, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  query,
+  serverTimestamp,
+  updateDoc,
+  where,
+  writeBatch,
+} from 'firebase/firestore'
 import { db } from '../firebase'
 import { toDate } from '../constants'
 
@@ -24,6 +35,33 @@ export async function updateTransaction(id, changes, userId) {
     updatedBy: userId,
     updatedAt: serverTimestamp(),
   })
+}
+
+// Firestore allows 500 writes per batch; stay under it
+const BATCH_LIMIT = 450
+
+// All-or-nothing within each batch: if one entry is refused, none in that batch change.
+// Selections are far below the limit in practice, so this is effectively one batch.
+async function commitInBatches(items, apply) {
+  for (let start = 0; start < items.length; start += BATCH_LIMIT) {
+    const batch = writeBatch(db)
+    for (const item of items.slice(start, start + BATCH_LIMIT)) apply(batch, item)
+    await batch.commit()
+  }
+}
+
+export async function updateTransactions(updates, userId) {
+  await commitInBatches(updates, (batch, { id, changes }) => {
+    batch.update(doc(db, 'transactions', id), {
+      ...changes,
+      updatedBy: userId,
+      updatedAt: serverTimestamp(),
+    })
+  })
+}
+
+export async function deleteTransactions(ids) {
+  await commitInBatches(ids, (batch, id) => batch.delete(doc(db, 'transactions', id)))
 }
 
 export async function deleteTransaction(id) {

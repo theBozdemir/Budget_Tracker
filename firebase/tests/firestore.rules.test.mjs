@@ -22,6 +22,7 @@ import {
   setDoc,
   updateDoc,
   where,
+  writeBatch,
 } from 'firebase/firestore'
 
 const HOUSEHOLD = 'h1'
@@ -403,6 +404,36 @@ describe('normal app use still works', () => {
         updatedAt: serverTimestamp(),
       })
     )
+  })
+
+  it('allows the household owner to bulk edit and bulk delete in one batch', async () => {
+    const alice = db('alice')
+    const edit = writeBatch(alice)
+    for (const id of ['tx-bob', 'tx-alice']) {
+      edit.update(doc(alice, 'transactions', id), {
+        timestamp: new Date('2026-10-15T12:00:00'),
+        category: 'Rent',
+        updatedBy: 'alice',
+        updatedAt: serverTimestamp(),
+      })
+    }
+    await assertSucceeds(edit.commit())
+    const remove = writeBatch(alice)
+    remove.delete(doc(alice, 'transactions', 'tx-bob'))
+    remove.delete(doc(alice, 'transactions', 'tx-alice'))
+    await assertSucceeds(remove.commit())
+  })
+
+  it('refuses the whole bulk change if one entry is not yours', async () => {
+    const bob = db('bob')
+    const batch = writeBatch(bob)
+    batch.delete(doc(bob, 'transactions', 'tx-bob'))
+    batch.delete(doc(bob, 'transactions', 'tx-alice'))
+    await assertFails(batch.commit())
+    // Nothing was deleted, including bob's own entry
+    await assertSucceeds(getDoc(doc(bob, 'transactions', 'tx-bob')))
+    const stillThere = await getDoc(doc(bob, 'transactions', 'tx-bob'))
+    if (!stillThere.exists()) throw new Error('tx-bob was deleted despite the batch failing')
   })
 
   it('allows the household creator to delete any transaction', async () => {

@@ -35,8 +35,10 @@ import { buildInviteLink, buildInviteMailtoUrl } from '../inviteUtils'
 import {
   addTransaction,
   deleteTransaction,
+  deleteTransactions,
   fetchTransactions,
   updateTransaction,
+  updateTransactions,
   filterTransactions,
   hasActiveFilters,
   memberOptionsFromTransactions,
@@ -59,6 +61,10 @@ export default function HouseholdDetailPage() {
   const [showMembers, setShowMembers] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [editingTransaction, setEditingTransaction] = useState(null)
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState(() => new Set())
+  const [showBulkEdit, setShowBulkEdit] = useState(false)
+  const [bulkBusy, setBulkBusy] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [filterType, setFilterType] = useState('all')
   const [filterCategories, setFilterCategories] = useState([])
@@ -151,6 +157,64 @@ export default function HouseholdDetailPage() {
   useEffect(() => {
     setVisibleCount(pageSize)
   }, [filters, pageSize, selectedMonth])
+
+  const canEditTransaction = (tx) => tx.createdBy === user?.uid || household?.createdBy === user?.uid
+  const selectableTransactions = filteredTransactions.filter(canEditTransaction)
+  const selectedTransactions = filteredTransactions.filter((tx) => selectedIds.has(tx.id))
+
+  // Only keep selections that are still on screen after the period or filters change
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      const visible = new Set(filteredTransactions.map((tx) => tx.id))
+      const next = new Set([...prev].filter((id) => visible.has(id)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [filteredTransactions])
+
+  function toggleSelected(id) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function exitSelectMode() {
+    setSelectMode(false)
+    setSelectedIds(new Set())
+  }
+
+  async function handleBulkDelete() {
+    const count = selectedTransactions.length
+    if (!count) return
+    if (!confirm(`Delete ${count} ${count === 1 ? 'entry' : 'entries'}? This cannot be undone.`)) return
+    setBulkBusy(true)
+    setError('')
+    try {
+      const ids = selectedTransactions.map((tx) => tx.id)
+      await deleteTransactions(ids)
+      const removed = new Set(ids)
+      setTransactions((prev) => prev.filter((t) => !removed.has(t.id)))
+      exitSelectMode()
+    } catch (err) {
+      setError(firestoreErrorMessage(err))
+    } finally {
+      setBulkBusy(false)
+    }
+  }
+
+  async function handleBulkEdit(updates) {
+    await updateTransactions(updates, user.uid)
+    const byId = new Map(updates.map((update) => [update.id, update.changes]))
+    setTransactions((prev) =>
+      prev
+        .map((t) => (byId.has(t.id) ? { ...t, ...byId.get(t.id), updatedAt: new Date(), updatedBy: user.uid } : t))
+        .sort((a, b) => toDate(b.timestamp) - toDate(a.timestamp))
+    )
+    setShowBulkEdit(false)
+    exitSelectMode()
+  }
 
   const visibleTransactions = visibleCount === 0 ? filteredTransactions : filteredTransactions.slice(0, visibleCount)
   const hiddenCount = filteredTransactions.length - visibleTransactions.length
@@ -465,6 +529,16 @@ export default function HouseholdDetailPage() {
             <button type="button" className="btn small" onClick={() => setShowFilters((v) => !v)}>
               {showFilters ? 'Hide filters' : 'Filter'}
             </button>
+            {selectableTransactions.length > 0 && (
+              <button
+                type="button"
+                className={`btn small${selectMode ? ' primary' : ''}`}
+                aria-pressed={selectMode}
+                onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
+              >
+                {selectMode ? 'Done' : 'Select'}
+              </button>
+            )}
           </div>
         </div>
 
@@ -504,8 +578,11 @@ export default function HouseholdDetailPage() {
                   key={tx.id}
                   transaction={tx}
                   currency={householdCurrency}
-                  canEdit={tx.createdBy === user.uid || household.createdBy === user.uid}
+                  canEdit={canEditTransaction(tx)}
                   onEdit={setEditingTransaction}
+                  selectMode={selectMode}
+                  selected={selectedIds.has(tx.id)}
+                  onToggleSelect={toggleSelected}
                 />
               ))}
             </div>
@@ -538,6 +615,58 @@ export default function HouseholdDetailPage() {
             setShowAdd(false)
             await load()
           }}
+        />
+      )}
+
+      {selectMode && <div className="bulk-bar-spacer" aria-hidden="true" />}
+
+      {selectMode && (
+        <div className="bulk-bar" role="toolbar" aria-label="Selected transactions">
+          <div className="bulk-bar-inner">
+            <span className="bulk-count">{selectedTransactions.length} selected</span>
+            <button
+              type="button"
+              className="link-button"
+              onClick={() =>
+                setSelectedIds(
+                  selectedTransactions.length === selectableTransactions.length
+                    ? new Set()
+                    : new Set(selectableTransactions.map((tx) => tx.id))
+                )
+              }
+            >
+              {selectedTransactions.length === selectableTransactions.length
+                ? 'Clear'
+                : `Select all ${selectableTransactions.length}`}
+            </button>
+            <div className="bulk-actions">
+              <button
+                type="button"
+                className="btn small"
+                disabled={!selectedTransactions.length || bulkBusy}
+                onClick={() => setShowBulkEdit(true)}
+              >
+                Change…
+              </button>
+              <button
+                type="button"
+                className="btn small danger"
+                disabled={!selectedTransactions.length || bulkBusy}
+                onClick={handleBulkDelete}
+              >
+                {bulkBusy ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showBulkEdit && (
+        <BulkEditModal
+          household={household}
+          transactions={selectedTransactions}
+          onClose={() => setShowBulkEdit(false)}
+          onSave={handleBulkEdit}
         />
       )}
 
@@ -685,17 +814,46 @@ function MembersCard({ household, user, profile, members, invites, onCancelInvit
   )
 }
 
-function TransactionItem({ transaction: tx, currency, canEdit, onEdit }) {
+function TransactionItem({ transaction: tx, currency, canEdit, onEdit, selectMode, selected, onToggleSelect }) {
   const [expanded, setExpanded] = useState(false)
   const isIncome = tx.type === 'income'
   const detailsId = `tx-details-${tx.id}`
+  const showDetails = expanded && !selectMode
+
+  if (selectMode) {
+    return (
+      <div className={`transaction-card selectable${selected ? ' selected' : ''}${canEdit ? '' : ' locked'}`}>
+        <label className="transaction-summary">
+          <input
+            type="checkbox"
+            className="transaction-check"
+            checked={selected}
+            disabled={!canEdit}
+            onChange={() => onToggleSelect(tx.id)}
+            aria-label={`Select ${tx.category} ${formatCurrency(Math.abs(tx.amount), currency)}`}
+          />
+          <span className="transaction-category">
+            <strong>{tx.category}</strong>
+            <span className="transaction-date">
+              {toDate(tx.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+              {!canEdit && ' · added by ' + tx.createdByName}
+            </span>
+          </span>
+          <span className={`transaction-amount ${isIncome ? 'positive' : 'negative'}`}>
+            {isIncome ? '+' : '−'}
+            {formatCurrency(Math.abs(tx.amount), currency)}
+          </span>
+        </label>
+      </div>
+    )
+  }
 
   return (
-    <div className={`transaction-card${expanded ? ' expanded' : ''}`}>
+    <div className={`transaction-card${showDetails ? ' expanded' : ''}`}>
       <button
         type="button"
         className="transaction-summary"
-        aria-expanded={expanded}
+        aria-expanded={showDetails}
         aria-controls={detailsId}
         onClick={() => setExpanded((open) => !open)}
       >
@@ -707,7 +865,7 @@ function TransactionItem({ transaction: tx, currency, canEdit, onEdit }) {
         <span className={`insights-chevron${expanded ? ' open' : ''}`} aria-hidden="true">▾</span>
       </button>
 
-      {expanded && (
+      {showDetails && (
         <div id={detailsId} className="transaction-details">
           {tx.note && <p>{tx.note}</p>}
           <p className="muted small">{isIncome ? 'Income' : 'Expense'} · {formatDateTime(toDate(tx.timestamp))}</p>
@@ -722,6 +880,91 @@ function TransactionItem({ transaction: tx, currency, canEdit, onEdit }) {
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+function BulkEditModal({ household, transactions, onClose, onSave }) {
+  const [date, setDate] = useState('')
+  const [category, setCategory] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  // A category only makes sense if every selected entry is the same type
+  const types = new Set(transactions.map((tx) => tx.type))
+  const sharedType = types.size === 1 ? [...types][0] : null
+  const categoryOptions = sharedType ? categoriesForHouseholdType(household, sharedType) : []
+  const count = transactions.length
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (!date && !category) {
+      setError('Choose a new date, a new category, or both.')
+      return
+    }
+    const [year, month, day] = date ? date.split('-').map(Number) : []
+    const updates = transactions.map((tx) => {
+      const changes = {}
+      if (date) {
+        // Move to the new day but keep each entry's time of day
+        const moved = new Date(toDate(tx.timestamp))
+        moved.setFullYear(year, month - 1, day)
+        changes.timestamp = moved
+      }
+      if (category) changes.category = category
+      return { id: tx.id, changes }
+    })
+    setSaving(true)
+    setError('')
+    try {
+      await onSave(updates)
+    } catch (err) {
+      setError(firestoreErrorMessage(err))
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" role="dialog" aria-label="Change selected entries" onClick={(e) => e.stopPropagation()}>
+        <h2>
+          Change {count} {count === 1 ? 'entry' : 'entries'}
+        </h2>
+        <p className="muted small modal-subtitle">Leave a field empty to keep it as it is.</p>
+        <form onSubmit={handleSubmit} className="stack">
+          <label>
+            New date
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <span className="muted small field-hint">Each entry keeps its time of day.</span>
+          </label>
+          {sharedType ? (
+            <label>
+              New category
+              <select value={category} onChange={(e) => setCategory(e.target.value)}>
+                <option value="">Keep current categories</option>
+                {categoryOptions.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <p className="muted small">
+              To change the category, select only expenses or only income.
+            </p>
+          )}
+          {error && <p className="error-text">{error}</p>}
+          <div className="row-actions">
+            <button type="button" className="btn" onClick={onClose} disabled={saving}>
+              Cancel
+            </button>
+            <button className={`btn${date || category ? ' primary' : ''}`} disabled={saving || (!date && !category)}>
+              {saving ? 'Saving...' : 'Apply'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
