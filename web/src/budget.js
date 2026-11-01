@@ -20,14 +20,28 @@ function totalsByCategory(transactions, type) {
 }
 
 // Planned vs actual for one month. `monthTransactions` must already be limited to that month.
-export function compareBudget(budgets, monthTransactions) {
+// Categories without their own budget use the month's recurring total as the expected amount.
+export function compareBudget(budgets, monthTransactions, recurring = emptyBudgets()) {
   const result = {}
   for (const type of TYPES) {
-    const planned = budgets?.[type] || {}
+    const own = budgets?.[type] || {}
+    const fromRecurring = new Set()
+    const planned = { ...own }
+    for (const [category, amount] of Object.entries(recurring?.[type] || {})) {
+      if (!(own[category] > 0) && amount > 0) {
+        planned[category] = amount
+        fromRecurring.add(category)
+      }
+    }
     const actual = totalsByCategory(monthTransactions, type)
     const rows = Object.entries(planned)
       .filter(([, amount]) => amount > 0)
-      .map(([category, amount]) => ({ category, planned: amount, actual: actual.get(category) || 0 }))
+      .map(([category, amount]) => ({
+        category,
+        planned: amount,
+        actual: actual.get(category) || 0,
+        recurring: fromRecurring.has(category),
+      }))
       .sort((a, b) => b.planned - a.planned)
     const unplanned = [...actual.entries()]
       .filter(([category, amount]) => amount > 0 && !(planned[category] > 0))

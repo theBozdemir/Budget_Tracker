@@ -2133,3 +2133,89 @@ label.budget-input-row input {
     gap: 2px 8px;
   }
 }
+
+/* Recurring */
+.repeat-row {
+  margin-top: -4px;
+}
+
+.upcoming {
+  margin-top: var(--space-md);
+}
+
+.upcoming h3 {
+  margin: 0 0 8px;
+  font-size: var(--text-sm);
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.upcoming .card-list {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 0;
+}
+
+.upcoming-item {
+  background: transparent;
+  border: 1.5px dashed #d1d5db;
+  box-shadow: none;
+}
+
+.upcoming-item .transaction-summary {
+  cursor: default;
+}
+
+.budget-row-tag {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #2a78d6;
+  background: #eaf2fc;
+  border-radius: 999px;
+  padding: 1px 6px;
+}
+
+.recurring-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.recurring-item {
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 10px;
+  font-size: var(--text-sm);
+}
+
+.recurring-item.paused {
+  opacity: 0.6;
+}
+
+.recurring-item-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.recurring-actions {
+  display: flex;
+  gap: 4px;
+  margin: 6px 0 0 -8px;
+}
+
+.recurring-edit {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.recurring-edit-wide {
+  grid-column: 1 / -1;
+  margin: 0;
+}
