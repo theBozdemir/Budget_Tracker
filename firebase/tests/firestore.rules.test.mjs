@@ -202,6 +202,72 @@ describe('household members', () => {
   })
 })
 
+describe('recurring entries', () => {
+  const template = (createdBy, extra = {}) => ({
+    householdId: HOUSEHOLD,
+    type: 'expense',
+    amount: 1800,
+    category: 'Rent',
+    note: '',
+    dayOfMonth: 1,
+    startMonth: '2026-10',
+    active: true,
+    lastPostedMonth: '2026-10',
+    createdBy,
+    createdByName: createdBy,
+    createdAt: serverTimestamp(),
+    ...extra,
+  })
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'recurring', 'rent'), template('bob'))
+    })
+  })
+
+  it('lets members create templates and read the household’s templates', async () => {
+    const alice = db('alice')
+    await assertSucceeds(setDoc(doc(alice, 'recurring', 'salary'), template('alice', { type: 'income', category: 'Salary' })))
+    await assertSucceeds(getDocs(query(collection(alice, 'recurring'), where('householdId', '==', HOUSEHOLD))))
+  })
+
+  it('blocks outsiders and malformed templates', async () => {
+    await assertFails(getDoc(doc(db('eve'), 'recurring', 'rent')))
+    await assertFails(setDoc(doc(db('eve'), 'recurring', 'x'), template('eve')))
+    const bob = db('bob')
+    await assertFails(setDoc(doc(bob, 'recurring', 'bad1'), template('bob', { dayOfMonth: 40 })))
+    await assertFails(setDoc(doc(bob, 'recurring', 'bad2'), template('bob', { amount: -5 })))
+    await assertFails(setDoc(doc(bob, 'recurring', 'bad3'), template('bob', { startMonth: 'soon' })))
+    await assertFails(setDoc(doc(bob, 'recurring', 'bad4'), template('alice')))
+  })
+
+  it('lets the creator and the household owner edit, pause and delete', async () => {
+    await assertSucceeds(updateDoc(doc(db('bob'), 'recurring', 'rent'), { amount: 1900, dayOfMonth: 3 }))
+    await assertSucceeds(updateDoc(doc(db('alice'), 'recurring', 'rent'), { active: false }))
+    await assertSucceeds(deleteDoc(doc(db('alice'), 'recurring', 'rent')))
+  })
+
+  it('lets other members only move the posted month forward', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'recurring', 'alices'), template('alice'))
+    })
+    const bob = db('bob')
+    await assertSucceeds(updateDoc(doc(bob, 'recurring', 'alices'), { lastPostedMonth: '2026-11' }))
+    await assertFails(updateDoc(doc(bob, 'recurring', 'alices'), { lastPostedMonth: '2026-09' }))
+    await assertFails(updateDoc(doc(bob, 'recurring', 'alices'), { amount: 1 }))
+    await assertFails(deleteDoc(doc(bob, 'recurring', 'alices')))
+  })
+
+  it('posts a month’s entry once, even if two members try at the same time', async () => {
+    const entry = (createdBy) => ({ ...transaction(createdBy), category: 'Rent', recurringId: 'rent' })
+    await assertSucceeds(setDoc(doc(db('alice'), 'transactions', 'rec_rent_2026-11'), entry('alice')))
+    // The second attempt would overwrite the first, which the rules refuse
+    await assertFails(setDoc(doc(db('bob'), 'transactions', 'rec_rent_2026-11'), entry('bob')))
+    // ...even for the household owner who posted it
+    await assertFails(setDoc(doc(db('alice'), 'transactions', 'rec_rent_2026-11'), entry('alice')))
+  })
+})
+
 describe('invited people', () => {
   it('blocks someone who signed up with the invitee’s email but never verified it', async () => {
     const impostor = env

@@ -8,12 +8,14 @@ import { firestoreErrorMessage } from '../firestoreErrors'
 import { DEFAULT_CURRENCY, formatCurrency, formatDateTime, HOUSEHOLD_CURRENCIES, toDate } from '../constants'
 import BudgetCard from '../components/BudgetCard'
 import InsightsCard from '../components/InsightsCard'
+import RecurringSettings from '../components/RecurringSettings'
 import useDragSelect from '../hooks/useDragSelect'
 import {
   currentMonthKey,
   dateInMonth,
   isInMonth,
   monthEndInput,
+  monthKeyOf,
   monthLabel,
   monthsWithEntries,
   shiftMonth,
@@ -47,6 +49,15 @@ import {
   memberOptionsFromTransactions,
   summarize,
 } from '../services/transactions'
+import {
+  createRecurring,
+  deleteRecurring,
+  fetchRecurring,
+  postDueRecurring,
+  recurringPlan,
+  upcomingForMonth,
+  updateRecurring,
+} from '../services/recurring'
 
 export default function HouseholdDetailPage() {
   const { id } = useParams()
@@ -56,6 +67,7 @@ export default function HouseholdDetailPage() {
   const [transactions, setTransactions] = useState([])
   const [invites, setInvites] = useState([])
   const [members, setMembers] = useState([])
+  const [recurring, setRecurring] = useState([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [acting, setActing] = useState(false)
@@ -91,15 +103,29 @@ export default function HouseholdDetailPage() {
         householdData = { id: householdSnap.id, ...householdSnap.data() }
       }
 
-      const [txs, pendingInvites] = await Promise.all([
+      const [txs, pendingInvites, templates] = await Promise.all([
         fetchTransactions(id),
         fetchHouseholdInvites(id),
+        // Older security rules don't know about recurring entries yet; carry on without them
+        fetchRecurring(id).catch(() => []),
       ])
+
+      // Add any recurring entries that have come due since someone last opened the household
+      let postedRecurring = []
+      try {
+        postedRecurring = await postDueRecurring(templates, user)
+      } catch (err) {
+        console.warn('Could not add recurring entries:', err)
+      }
+      const allTransactions = [...postedRecurring, ...txs].sort(
+        (a, b) => toDate(b.timestamp) - toDate(a.timestamp)
+      )
 
       householdData = await syncJoinInviteMap(householdData, pendingInvites, user.uid)
       householdData = await ensureHouseholdCategories(householdData)
       setHousehold(householdData)
-      setTransactions(txs)
+      setTransactions(allTransactions)
+      setRecurring(templates)
       setInvites(pendingInvites)
       try {
         setMembers(await fetchHouseholdMembers(householdData, user.uid, profile, user))
@@ -233,6 +259,18 @@ export default function HouseholdDetailPage() {
   })
 
   const summary = summarize(filteredTransactions)
+
+  // Recurring entries still to come in the month being viewed (none for past months)
+  const upcoming = useMemo(
+    () => (customRange || selectedMonth < currentMonthKey() ? [] : upcomingForMonth(recurring, selectedMonth)),
+    [recurring, selectedMonth, customRange]
+  )
+  const upcomingNet = upcoming.reduce(
+    (net, { template }) => net + (template.type === 'income' ? 1 : -1) * Math.abs(template.amount),
+    0
+  )
+  const canEditRecurring = (template) =>
+    template.createdBy === user?.uid || household?.createdBy === user?.uid
   const householdCurrency = household?.currency || DEFAULT_CURRENCY
   const categoryLists = household ? getHouseholdCategories(household) : { expense: [], income: [] }
   const filterCategoryOptions = useMemo(() => {
@@ -501,6 +539,14 @@ export default function HouseholdDetailPage() {
             <strong className="negative">{formatCurrency(summary.expenses, householdCurrency)}</strong>
           </div>
         </div>
+        {upcoming.length > 0 && !filtersActive && (
+          <p className="muted small summary-filter-note">
+            After upcoming recurring entries:{' '}
+            <strong className={summary.balance + upcomingNet >= 0 ? 'positive' : 'negative'}>
+              {formatCurrency(summary.balance + upcomingNet, householdCurrency)}
+            </strong>
+          </p>
+        )}
         {filtersActive && (
           <p className="muted small summary-filter-note">
             Based on {filteredTransactions.length} of {periodTotal} entries
@@ -514,6 +560,7 @@ export default function HouseholdDetailPage() {
           transactions={transactions}
           monthKey={selectedMonth}
           currency={householdCurrency}
+          recurringPlan={recurringPlan(recurring, selectedMonth)}
           onSave={async (budgets) => {
             await updateHouseholdBudgets(household.id, budgets)
             setHousehold((prev) => ({ ...prev, budgets }))
@@ -628,6 +675,32 @@ export default function HouseholdDetailPage() {
             </div>
           </>
         )}
+
+        {upcoming.length > 0 && (
+          <div className="upcoming">
+            <h3>Upcoming this month</h3>
+            <ul className="card-list compact">
+              {upcoming.map(({ template, date }) => (
+                <li key={template.id} className="transaction-card upcoming-item">
+                  <div className="transaction-summary">
+                    <span className="transaction-category">
+                      <strong>{template.category}</strong>
+                      <span className="transaction-date">
+                        {' · due '}
+                        {date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      </span>
+                    </span>
+                    <span className={`transaction-amount ${template.type === 'income' ? 'positive' : 'negative'}`}>
+                      {template.type === 'income' ? '+' : '−'}
+                      {formatCurrency(Math.abs(template.amount), householdCurrency)}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <p className="muted small">Added automatically on their day. Manage them in ⚙ Settings.</p>
+          </div>
+        )}
       </section>
 
       {showAdd && (
@@ -637,6 +710,11 @@ export default function HouseholdDetailPage() {
           profile={profile}
           defaultDate={customRange || selectedMonth === thisMonth ? new Date() : dateInMonth(selectedMonth)}
           onClose={() => setShowAdd(false)}
+          onCreateRecurring={async (template) => {
+            const recurringId = await createRecurring(template)
+            setRecurring((prev) => [...prev, { id: recurringId, ...template, active: true }])
+            return recurringId
+          }}
           onSaved={async () => {
             setShowAdd(false)
             await load()
@@ -723,6 +801,16 @@ export default function HouseholdDetailPage() {
           acting={acting}
           onCategoriesUpdate={handleCategoriesUpdate}
           onCurrencyChange={handleCurrencyChange}
+          recurring={recurring}
+          canEditRecurring={canEditRecurring}
+          onRecurringUpdate={async (recurringId, changes) => {
+            await updateRecurring(recurringId, changes)
+            setRecurring((prev) => prev.map((t) => (t.id === recurringId ? { ...t, ...changes } : t)))
+          }}
+          onRecurringDelete={async (recurringId) => {
+            await deleteRecurring(recurringId)
+            setRecurring((prev) => prev.filter((t) => t.id !== recurringId))
+          }}
           onLeave={handleLeave}
           onDelete={handleDeleteHousehold}
           onClose={() => setShowSettings(false)}
@@ -898,6 +986,7 @@ function TransactionItem({ transaction: tx, currency, canEdit, onEdit, selectMod
           <p className="muted small">{isIncome ? 'Income' : 'Expense'} · {formatDateTime(toDate(tx.timestamp))}</p>
           <p className="muted small">
             Added by {tx.createdByName}
+            {tx.recurringId && ' · repeats monthly'}
             {tx.updatedAt && ' · edited'}
           </p>
           {canEdit && (
@@ -1006,6 +1095,10 @@ function SettingsModal({
   onLeave,
   onDelete,
   onClose,
+  recurring,
+  canEditRecurring,
+  onRecurringUpdate,
+  onRecurringDelete,
 }) {
   useEffect(() => {
     function handleKeyDown(event) {
@@ -1027,6 +1120,15 @@ function SettingsModal({
         </div>
 
         <CategorySettings household={household} disabled={acting} onUpdate={onCategoriesUpdate} />
+
+        <RecurringSettings
+          household={household}
+          recurring={recurring}
+          currency={currency}
+          canEdit={canEditRecurring}
+          onUpdate={onRecurringUpdate}
+          onDelete={onRecurringDelete}
+        />
 
         <section className="settings-section">
           <h3>Currency</h3>
@@ -1270,7 +1372,17 @@ function TransactionFilters({
   )
 }
 
-function TransactionModal({ household, user, profile, transaction, defaultDate, onClose, onSaved, onDelete }) {
+function TransactionModal({
+  household,
+  user,
+  profile,
+  transaction,
+  defaultDate,
+  onClose,
+  onSaved,
+  onDelete,
+  onCreateRecurring,
+}) {
   const editing = Boolean(transaction)
   const [type, setType] = useState(transaction?.type || 'expense')
   const [amount, setAmount] = useState(transaction ? String(Math.abs(transaction.amount)) : '')
@@ -1284,6 +1396,7 @@ function TransactionModal({ household, user, profile, transaction, defaultDate, 
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [repeatMonthly, setRepeatMonthly] = useState(false)
 
   const typeCategories = categoriesForHouseholdType(household, type)
   // Keep an entry's old category selectable even if it was removed from the list since
@@ -1323,12 +1436,34 @@ function TransactionModal({ household, user, profile, transaction, defaultDate, 
         await updateTransaction(transaction.id, fields, user.uid)
         onSaved({ ...fields, updatedAt: new Date(), updatedBy: user.uid })
       } else {
-        await addTransaction({
-          ...fields,
-          householdId: household.id,
-          createdBy: user.uid,
-          createdByName: profile?.displayName || user.displayName || 'User',
-        })
+        const createdByName = profile?.displayName || user.displayName || 'User'
+        const entryMonth = monthKeyOf(fields.timestamp)
+        const isDue = fields.timestamp <= new Date()
+        let recurringId = null
+        if (repeatMonthly && onCreateRecurring) {
+          // A future date just sets up the template; its first entry is added on the day
+          recurringId = await onCreateRecurring({
+            householdId: household.id,
+            type,
+            amount: parsed,
+            category,
+            note: fields.note,
+            dayOfMonth: fields.timestamp.getDate(),
+            startMonth: entryMonth,
+            ...(isDue ? { lastPostedMonth: entryMonth } : {}),
+            createdBy: user.uid,
+            createdByName,
+          })
+        }
+        if (!recurringId || isDue) {
+          await addTransaction({
+            ...fields,
+            householdId: household.id,
+            createdBy: user.uid,
+            createdByName,
+            ...(recurringId ? { recurringId } : {}),
+          })
+        }
         await onSaved()
       }
     } catch (err) {
@@ -1388,6 +1523,17 @@ function TransactionModal({ household, user, profile, transaction, defaultDate, 
             Note (optional)
             <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="What was this for?" />
           </label>
+          {!editing && onCreateRecurring && (
+            <label className="checkbox-row repeat-row">
+              <input type="checkbox" checked={repeatMonthly} onChange={(e) => setRepeatMonthly(e.target.checked)} />
+              <span>
+                Repeat every month
+                {repeatMonthly && timestamp && (
+                  <span className="muted small"> on day {new Date(timestamp).getDate()}</span>
+                )}
+              </span>
+            </label>
+          )}
           {error && <p className="error-text">{error}</p>}
           <div className="row-actions">
             <button type="button" className="btn" onClick={onClose} disabled={busy}>Cancel</button>

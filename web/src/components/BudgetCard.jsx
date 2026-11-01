@@ -72,7 +72,10 @@ function BudgetRow({ row, kind, currency }) {
   return (
     <li className="budget-row">
       <div className="budget-row-top">
-        <span className="budget-row-name">{row.category}</span>
+        <span className="budget-row-name">
+          {row.category}
+          {row.recurring && <span className="budget-row-tag">recurring</span>}
+        </span>
         <span className="budget-row-amounts">
           <strong>{formatCurrency(row.actual, currency)}</strong>
           {row.planned > 0 && <span className="muted"> / {formatCurrency(row.planned, currency)}</span>}
@@ -101,17 +104,20 @@ function BudgetSection({ title, kind, data, currency }) {
   )
 }
 
-export default function BudgetCard({ household, transactions, monthKey, currency, onSave }) {
+export default function BudgetCard({ household, transactions, monthKey, currency, recurringPlan, onSave }) {
   const [open, setOpen] = useState(readOpen)
   const [editing, setEditing] = useState(false)
   const budgets = household.budgets || emptyBudgets()
-  const planned = hasBudget(budgets)
+  const planned = hasBudget(budgets) || hasBudget(recurringPlan)
 
   const monthTransactions = useMemo(
     () => transactions.filter((tx) => isInMonth(tx, monthKey)),
     [transactions, monthKey]
   )
-  const comparison = useMemo(() => compareBudget(budgets, monthTransactions), [budgets, monthTransactions])
+  const comparison = useMemo(
+    () => compareBudget(budgets, monthTransactions, recurringPlan),
+    [budgets, monthTransactions, recurringPlan]
+  )
   const pace = monthProgress(monthKey)
   const spent = comparison.expense.actual
   const limit = comparison.expense.planned
