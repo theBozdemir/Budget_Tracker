@@ -1879,23 +1879,33 @@ label.month-select select {
   width: 20px;
   height: 20px;
   flex: none;
-  margin: 0;
-  padding: 0;
-  accent-color: #16a34a;
+  border: 2px solid #9ca3af;
+  border-radius: 6px;
+  background: #fff;
+  position: relative;
 }
 
-.transaction-card.selectable .transaction-category {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.transaction-check.checked {
+  background: #16a34a;
+  border-color: #16a34a;
+}
+
+.transaction-check.checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 5px;
+  height: 10px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 
 .transaction-date {
   font-size: var(--text-sm);
   font-weight: 400;
   color: #6b7280;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .bulk-bar-spacer {
@@ -1939,4 +1949,11 @@ label.month-select select {
 
 .field-hint {
   font-weight: 400;
+}
+
+/* Press-and-hold selection: no text selection or iOS callout on rows */
+.card-list .transaction-card {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }

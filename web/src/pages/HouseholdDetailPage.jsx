@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { doc, getDoc } from 'firebase/firestore'
 import { useAuth } from '../AuthContext'
@@ -7,6 +7,7 @@ import { db } from '../firebase'
 import { firestoreErrorMessage } from '../firestoreErrors'
 import { DEFAULT_CURRENCY, formatCurrency, formatDateTime, HOUSEHOLD_CURRENCIES, toDate } from '../constants'
 import InsightsCard from '../components/InsightsCard'
+import useDragSelect from '../hooks/useDragSelect'
 import {
   currentMonthKey,
   dateInMonth,
@@ -218,6 +219,16 @@ export default function HouseholdDetailPage() {
 
   const visibleTransactions = visibleCount === 0 ? filteredTransactions : filteredTransactions.slice(0, visibleCount)
   const hiddenCount = filteredTransactions.length - visibleTransactions.length
+
+  const listRef = useRef(null)
+  const { onPointerDown: onListPointerDown } = useDragSelect({
+    listRef,
+    orderedIds: visibleTransactions.filter(canEditTransaction).map((tx) => tx.id),
+    selectedIds,
+    setSelectedIds,
+    onStart: () => setSelectMode(true),
+    bottomInset: 90,
+  })
 
   const summary = summarize(filteredTransactions)
   const householdCurrency = household?.currency || DEFAULT_CURRENCY
@@ -572,7 +583,7 @@ export default function HouseholdDetailPage() {
           </p>
         ) : (
           <>
-            <div className="card-list compact">
+            <div className="card-list compact" ref={listRef} onPointerDown={onListPointerDown}>
               {visibleTransactions.map((tx) => (
                 <TransactionItem
                   key={tx.id}
@@ -623,7 +634,9 @@ export default function HouseholdDetailPage() {
       {selectMode && (
         <div className="bulk-bar" role="toolbar" aria-label="Selected transactions">
           <div className="bulk-bar-inner">
-            <span className="bulk-count">{selectedTransactions.length} selected</span>
+            <span className="bulk-count">
+              {selectedTransactions.length ? `${selectedTransactions.length} selected` : 'Tap, or hold and slide'}
+            </span>
             <button
               type="button"
               className="link-button"
@@ -819,50 +832,49 @@ function TransactionItem({ transaction: tx, currency, canEdit, onEdit, selectMod
   const isIncome = tx.type === 'income'
   const detailsId = `tx-details-${tx.id}`
   const showDetails = expanded && !selectMode
+  const amountText = `${isIncome ? '+' : '−'}${formatCurrency(Math.abs(tx.amount), currency)}`
 
-  if (selectMode) {
-    return (
-      <div className={`transaction-card selectable${selected ? ' selected' : ''}${canEdit ? '' : ' locked'}`}>
-        <label className="transaction-summary">
-          <input
-            type="checkbox"
-            className="transaction-check"
-            checked={selected}
-            disabled={!canEdit}
-            onChange={() => onToggleSelect(tx.id)}
-            aria-label={`Select ${tx.category} ${formatCurrency(Math.abs(tx.amount), currency)}`}
-          />
-          <span className="transaction-category">
-            <strong>{tx.category}</strong>
-            <span className="transaction-date">
-              {toDate(tx.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-              {!canEdit && ' · added by ' + tx.createdByName}
-            </span>
-          </span>
-          <span className={`transaction-amount ${isIncome ? 'positive' : 'negative'}`}>
-            {isIncome ? '+' : '−'}
-            {formatCurrency(Math.abs(tx.amount), currency)}
-          </span>
-        </label>
-      </div>
-    )
-  }
+  // The row keeps the same elements in both modes (only the checkbox and date
+  // appear), so a finger holding it isn't lost when select mode switches on
+  const className = [
+    'transaction-card',
+    showDetails && 'expanded',
+    selectMode && 'selectable',
+    selectMode && selected && 'selected',
+    selectMode && !canEdit && 'locked',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   return (
-    <div className={`transaction-card${showDetails ? ' expanded' : ''}`}>
+    <div className={className} data-select-id={tx.id} data-selectable={canEdit}>
       <button
         type="button"
         className="transaction-summary"
-        aria-expanded={showDetails}
-        aria-controls={detailsId}
-        onClick={() => setExpanded((open) => !open)}
+        {...(selectMode
+          ? { role: 'checkbox', 'aria-checked': selected, 'aria-disabled': !canEdit }
+          : { 'aria-expanded': showDetails, 'aria-controls': detailsId })}
+        aria-label={selectMode ? `${tx.category} ${amountText}` : undefined}
+        onClick={() => {
+          if (!selectMode) setExpanded((open) => !open)
+          else if (canEdit) onToggleSelect(tx.id)
+        }}
       >
-        <strong className="transaction-category">{tx.category}</strong>
-        <span className={`transaction-amount ${isIncome ? 'positive' : 'negative'}`}>
-          {isIncome ? '+' : '−'}
-          {formatCurrency(Math.abs(tx.amount), currency)}
+        {selectMode && <span className={`transaction-check${selected ? ' checked' : ''}`} aria-hidden="true" />}
+        <span className="transaction-category">
+          <strong>{tx.category}</strong>
+          {selectMode && (
+            <span className="transaction-date">
+              {' · '}
+              {toDate(tx.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+              {!canEdit && ` · ${tx.createdByName}`}
+            </span>
+          )}
         </span>
-        <span className={`insights-chevron${expanded ? ' open' : ''}`} aria-hidden="true">▾</span>
+        <span className={`transaction-amount ${isIncome ? 'positive' : 'negative'}`}>{amountText}</span>
+        {!selectMode && (
+          <span className={`insights-chevron${expanded ? ' open' : ''}`} aria-hidden="true">▾</span>
+        )}
       </button>
 
       {showDetails && (
