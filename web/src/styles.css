@@ -1857,3 +1857,86 @@ label.month-select select {
     position: static;
   }
 }
+
+/* Select mode */
+.transaction-card.selectable .transaction-summary {
+  cursor: pointer;
+}
+
+.transaction-card.selected {
+  box-shadow: 0 0 0 2px #16a34a;
+}
+
+.transaction-card.locked {
+  opacity: 0.55;
+}
+
+.transaction-card.locked .transaction-summary {
+  cursor: default;
+}
+
+.transaction-check {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  margin: 0;
+  padding: 0;
+  accent-color: #16a34a;
+}
+
+.transaction-card.selectable .transaction-category {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.transaction-date {
+  font-size: var(--text-sm);
+  font-weight: 400;
+  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bulk-bar-spacer {
+  height: 88px;
+}
+
+.bulk-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 12;
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+  box-shadow: 0 -4px 16px rgba(17, 24, 39, 0.08);
+  padding:
+    10px
+    calc(var(--space-sm) + var(--safe-right))
+    calc(10px + var(--safe-bottom))
+    calc(var(--space-sm) + var(--safe-left));
+}
+
+.bulk-bar-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+}
+
+.bulk-count {
+  font-weight: 700;
+}
+
+.bulk-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.field-hint {
+  font-weight: 400;
+}
