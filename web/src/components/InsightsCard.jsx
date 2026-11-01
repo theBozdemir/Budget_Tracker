@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { formatCurrency, toDate } from '../constants'
+import { isInMonth, monthLabel, shiftMonth } from '../months'
 import CategoryPieChart, { buildSlices } from './CategoryPieChart'
 import MonthlyChart from './MonthlyChart'
 
@@ -27,33 +27,34 @@ function saveSetting(key, value) {
   }
 }
 
-function monthSummary(transactions, dateTo) {
-  const ref = dateTo ? new Date(`${dateTo}T00:00:00`) : new Date()
-  let net = 0
-  for (const tx of transactions) {
-    const date = toDate(tx.timestamp)
-    if (date.getFullYear() !== ref.getFullYear() || date.getMonth() !== ref.getMonth()) continue
-    const amount = Math.abs(tx.amount || 0)
-    if (tx.type === 'income') net += amount
-    else if (tx.type === 'expense') net -= amount
-  }
-  const isCurrent = !dateTo
-  const label = isCurrent ? 'This month' : ref.toLocaleDateString(undefined, { month: 'short', year: 'numeric' })
-  return { label, net }
+function spendingIn(transactions, key) {
+  return transactions
+    .filter((tx) => tx.type === 'expense' && isInMonth(tx, key))
+    .reduce((sum, tx) => sum + Math.abs(tx.amount || 0), 0)
 }
 
-export default function InsightsCard({ transactions, currency, dateFrom, dateTo }) {
+// Spending in the selected month compared with the month before it
+function spendingChange(transactions, key) {
+  if (!key) return null
+  const previous = shiftMonth(key, -1)
+  const now = spendingIn(transactions, key)
+  const before = spendingIn(transactions, previous)
+  if (before === 0) return null
+  return { percent: Math.round(((now - before) / before) * 100), previousLabel: monthLabel(previous, 'short') }
+}
+
+export default function InsightsCard({ transactions, periodTransactions, currency, dateFrom, dateTo, compareMonth }) {
   const [open, setOpen] = useState(() => readSetting(OPEN_KEY, 'false') === 'true')
   const [tab, setTab] = useState(() => {
     const saved = readSetting(TAB_KEY, 'monthly')
     return TABS.some((t) => t.key === saved) ? saved : 'monthly'
   })
 
-  const month = useMemo(() => monthSummary(transactions, dateTo), [transactions, dateTo])
+  const change = useMemo(() => spendingChange(transactions, compareMonth), [transactions, compareMonth])
   const topCategory = useMemo(() => {
-    const { slices } = buildSlices(transactions, 'expense')
+    const { slices } = buildSlices(periodTransactions, 'expense')
     return slices.find((slice) => !slice.members) || null
-  }, [transactions])
+  }, [periodTransactions])
 
   function toggleOpen() {
     setOpen((current) => {
@@ -78,12 +79,17 @@ export default function InsightsCard({ transactions, currency, dateFrom, dateTo 
       >
         <span className="insights-title">Insights</span>
         <span className="insights-summary">
-          <span>
-            {month.label} net:{' '}
-            <strong className={month.net >= 0 ? 'positive' : 'negative'}>
-              {formatCurrency(month.net, currency)}
-            </strong>
-          </span>
+          {change && (
+            <span>
+              Spending{' '}
+              <strong className={change.percent > 0 ? 'negative' : change.percent < 0 ? 'positive' : undefined}>
+                {change.percent > 0 ? '▲' : change.percent < 0 ? '▼' : ''}
+                {Math.abs(change.percent)}%
+              </strong>{' '}
+              vs {change.previousLabel}
+            </span>
+          )}
+          {!change && !topCategory && <span>No spending yet this period</span>}
           {topCategory && (
             <span className="insights-summary-extra">
               Top: {topCategory.name} {Math.round(topCategory.share * 100)}%
@@ -116,7 +122,7 @@ export default function InsightsCard({ transactions, currency, dateFrom, dateTo 
           {tab === 'monthly' ? (
             <MonthlyChart transactions={transactions} currency={currency} dateFrom={dateFrom} dateTo={dateTo} />
           ) : (
-            <CategoryPieChart transactions={transactions} currency={currency} />
+            <CategoryPieChart transactions={periodTransactions} currency={currency} />
           )}
         </div>
       )}

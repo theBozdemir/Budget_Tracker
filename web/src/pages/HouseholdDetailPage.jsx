@@ -7,6 +7,15 @@ import { db } from '../firebase'
 import { firestoreErrorMessage } from '../firestoreErrors'
 import { DEFAULT_CURRENCY, formatCurrency, formatDateTime, HOUSEHOLD_CURRENCIES, toDate } from '../constants'
 import InsightsCard from '../components/InsightsCard'
+import {
+  currentMonthKey,
+  dateInMonth,
+  isInMonth,
+  monthEndInput,
+  monthLabel,
+  monthsWithEntries,
+  shiftMonth,
+} from '../months'
 import { categoriesForHouseholdType, getHouseholdCategories, normalizeCategoryName, uniqCategories } from '../services/categories'
 import {
   deleteHousehold,
@@ -56,6 +65,8 @@ export default function HouseholdDetailPage() {
   const [filterMemberId, setFilterMemberId] = useState('all')
   const [filterDateFrom, setFilterDateFrom] = useState('')
   const [filterDateTo, setFilterDateTo] = useState('')
+  // Always open on the current month; older months are one tap away
+  const [selectedMonth, setSelectedMonth] = useState(currentMonthKey)
   const [pageSize, setPageSize] = useState(readPageSize)
   const [visibleCount, setVisibleCount] = useState(pageSize)
 
@@ -109,15 +120,37 @@ export default function HouseholdDetailPage() {
     [filterType, filterCategories, filterMemberId, filterDateFrom, filterDateTo]
   )
 
-  const filteredTransactions = useMemo(
+  // A custom date range from the filters replaces the month view
+  const customRange = Boolean(filterDateFrom || filterDateTo)
+
+  // Everything matching the filters, across all months (used for trends)
+  const matchingTransactions = useMemo(
     () => filterTransactions(transactions, filters),
     [transactions, filters]
   )
 
-  // Start again from the newest entries whenever the filters or list size change
+  // What the page shows: the selected month, or the custom date range
+  const filteredTransactions = useMemo(
+    () => (customRange ? matchingTransactions : matchingTransactions.filter((tx) => isInMonth(tx, selectedMonth))),
+    [matchingTransactions, customRange, selectedMonth]
+  )
+
+  const periodTotal = useMemo(
+    () => (customRange ? transactions.length : transactions.filter((tx) => isInMonth(tx, selectedMonth)).length),
+    [transactions, customRange, selectedMonth]
+  )
+
+  const thisMonth = currentMonthKey()
+  const monthOptions = useMemo(
+    () => monthsWithEntries(transactions, [thisMonth, selectedMonth]),
+    [transactions, thisMonth, selectedMonth]
+  )
+  const periodLabel = customRange ? 'Selected dates' : monthLabel(selectedMonth)
+
+  // Start again from the newest entries whenever the period, filters or list size change
   useEffect(() => {
     setVisibleCount(pageSize)
-  }, [filters, pageSize])
+  }, [filters, pageSize, selectedMonth])
 
   const visibleTransactions = visibleCount === 0 ? filteredTransactions : filteredTransactions.slice(0, visibleCount)
   const hiddenCount = filteredTransactions.length - visibleTransactions.length
@@ -131,7 +164,7 @@ export default function HouseholdDetailPage() {
     return uniqCategories([...categoryLists.expense, ...categoryLists.income])
   }, [filterType, categoryLists])
   const memberOptions = useMemo(() => memberOptionsFromTransactions(transactions), [transactions])
-  const filtersActive = hasActiveFilters(filters)
+  const filtersActive = hasActiveFilters({ ...filters, dateFrom: '', dateTo: '' })
 
   async function handleCategoriesUpdate(nextLists) {
     if (!household) return
@@ -324,9 +357,59 @@ export default function HouseholdDetailPage() {
 
       <ErrorBanner message={error} onDismiss={() => setError('')} />
 
+      {customRange ? (
+        <div className="month-bar custom">
+          <span>Showing the dates chosen in Filter</span>
+          <button
+            type="button"
+            className="link-button"
+            onClick={() => {
+              setFilterDateFrom('')
+              setFilterDateTo('')
+            }}
+          >
+            Back to months
+          </button>
+        </div>
+      ) : (
+        <div className="month-bar">
+          <button
+            type="button"
+            className="month-step"
+            aria-label="Previous month"
+            onClick={() => setSelectedMonth((key) => shiftMonth(key, -1))}
+          >
+            ‹
+          </button>
+          <label className="month-select">
+            <span className="visually-hidden">Month</span>
+            <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
+              {monthOptions.map((key) => (
+                <option key={key} value={key}>
+                  {monthLabel(key)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="month-step"
+            aria-label="Next month"
+            onClick={() => setSelectedMonth((key) => shiftMonth(key, 1))}
+          >
+            ›
+          </button>
+          {selectedMonth !== thisMonth && (
+            <button type="button" className="link-button month-today" onClick={() => setSelectedMonth(thisMonth)}>
+              Today
+            </button>
+          )}
+        </div>
+      )}
+
       <section className="summary-card">
         <p className="summary-label">
-          {filtersActive ? 'Filtered balance' : 'Balance'}
+          {filtersActive ? `${periodLabel} · filtered` : periodLabel} balance
         </p>
         <p className={`summary-balance ${summary.balance >= 0 ? 'positive' : 'negative'}`}>
           {formatCurrency(summary.balance, householdCurrency)}
@@ -343,16 +426,18 @@ export default function HouseholdDetailPage() {
         </div>
         {filtersActive && (
           <p className="muted small summary-filter-note">
-            Based on {filteredTransactions.length} of {transactions.length} entries
+            Based on {filteredTransactions.length} of {periodTotal} entries
           </p>
         )}
       </section>
 
       <InsightsCard
-        transactions={filteredTransactions}
+        transactions={matchingTransactions}
+        periodTransactions={filteredTransactions}
         currency={householdCurrency}
         dateFrom={filterDateFrom}
-        dateTo={filterDateTo}
+        dateTo={customRange ? filterDateTo : monthEndInput(selectedMonth)}
+        compareMonth={customRange ? null : selectedMonth}
       />
 
       <section className="section-block">
@@ -407,7 +492,9 @@ export default function HouseholdDetailPage() {
           <p className="muted">
             {transactions.length === 0
               ? 'No transactions yet. Add an expense or income to get started.'
-              : 'No transactions match these filters.'}
+              : periodTotal === 0
+                ? `No transactions in ${periodLabel} yet.`
+                : 'No transactions match these filters.'}
           </p>
         ) : (
           <>
@@ -445,6 +532,7 @@ export default function HouseholdDetailPage() {
           household={household}
           user={user}
           profile={profile}
+          defaultDate={customRange || selectedMonth === thisMonth ? new Date() : dateInMonth(selectedMonth)}
           onClose={() => setShowAdd(false)}
           onSaved={async () => {
             setShowAdd(false)
@@ -912,7 +1000,7 @@ function TransactionFilters({
   )
 }
 
-function TransactionModal({ household, user, profile, transaction, onClose, onSaved, onDelete }) {
+function TransactionModal({ household, user, profile, transaction, defaultDate, onClose, onSaved, onDelete }) {
   const editing = Boolean(transaction)
   const [type, setType] = useState(transaction?.type || 'expense')
   const [amount, setAmount] = useState(transaction ? String(Math.abs(transaction.amount)) : '')
@@ -921,7 +1009,7 @@ function TransactionModal({ household, user, profile, transaction, onClose, onSa
   )
   const [note, setNote] = useState(transaction?.note || '')
   const [timestamp, setTimestamp] = useState(
-    toLocalInputValue(transaction ? toDate(transaction.timestamp) : new Date())
+    toLocalInputValue(transaction ? toDate(transaction.timestamp) : defaultDate || new Date())
   )
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
