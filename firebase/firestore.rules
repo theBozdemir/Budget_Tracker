@@ -66,6 +66,14 @@ service cloud.firestore {
       return value is string && value.size() <= maxLength;
     }
 
+    // { expense: { category: amount }, income: { category: amount } }
+    function validBudgets(budgets) {
+      return budgets is map &&
+        budgets.keys().hasOnly(['expense', 'income']) &&
+        (!('expense' in budgets) || (budgets.expense is map && budgets.expense.size() <= 200)) &&
+        (!('income' in budgets) || (budgets.income is map && budgets.income.size() <= 200));
+    }
+
     function validTransaction(data) {
       return data.keys().hasAll(['householdId', 'amount', 'type', 'category', 'createdBy']) &&
         data.keys().hasOnly([
@@ -134,8 +142,9 @@ service cloud.firestore {
             request.auth.uid in resource.data.memberIds &&
             changedKeys().hasOnly([
               'name', 'currency', 'expenseCategories', 'incomeCategories',
-              'pendingInviteEmails', 'joinInviteFor', 'memberIds'
+              'pendingInviteEmails', 'joinInviteFor', 'memberIds', 'budgets'
             ]) &&
+            (!('budgets' in request.resource.data) || validBudgets(request.resource.data.budgets)) &&
             (!changedKeys().hasAny(['memberIds']) || removesOnlySelf())
           ) ||
           (

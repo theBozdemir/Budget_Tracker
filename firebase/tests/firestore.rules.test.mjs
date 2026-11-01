@@ -292,6 +292,18 @@ describe('normal app use still works', () => {
     )
   })
 
+  it('allows members to save a monthly budget, and rejects malformed ones', async () => {
+    const bob = db('bob')
+    await assertSucceeds(
+      updateDoc(doc(bob, 'households', HOUSEHOLD), {
+        budgets: { expense: { Groceries: 500, Rent: 1800 }, income: { Salary: 4200 } },
+      })
+    )
+    await assertFails(updateDoc(doc(bob, 'households', HOUSEHOLD), { budgets: 'lots' }))
+    await assertFails(updateDoc(doc(bob, 'households', HOUSEHOLD), { budgets: { expense: {}, hacked: true } }))
+    await assertFails(updateDoc(doc(db('eve'), 'households', HOUSEHOLD), { budgets: { expense: {} } }))
+  })
+
   it('allows members to invite someone and cancel the invite', async () => {
     const bob = db('bob')
     await assertSucceeds(

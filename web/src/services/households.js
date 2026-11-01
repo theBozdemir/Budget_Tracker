@@ -182,6 +182,11 @@ export async function ensureHouseholdCategories(household) {
   return { ...household, expenseCategories, incomeCategories }
 }
 
+export async function updateHouseholdBudgets(householdId, budgets) {
+  await updateDoc(doc(db, 'households', householdId), { budgets })
+  return budgets
+}
+
 export async function updateHouseholdCategories(householdId, { expenseCategories, incomeCategories }) {
   const expense = uniqCategories(expenseCategories || [])
   const income = uniqCategories(incomeCategories || [])
