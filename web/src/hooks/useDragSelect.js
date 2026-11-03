@@ -9,9 +9,24 @@ const MAX_SCROLL_STEP = 18
 // over other rows to select (or unselect) everything in between, like iOS Photos.
 // The page auto-scrolls when the finger nears the top or bottom edge.
 //
+// Selection follows whatever is under the finger or pointer however the page
+// scrolls (edge auto-scroll, mouse wheel, trackpad, momentum).
+//
+// When `instantZone` is set (in select mode), pressing within that many pixels
+// of a row's left edge (the checkbox column) starts selecting straight away,
+// without the hold.
+//
 // Rows are found by `data-select-id` on the element; rows without
 // `data-selectable="true"` are skipped.
-export default function useDragSelect({ listRef, orderedIds, selectedIds, setSelectedIds, onStart, bottomInset = 0 }) {
+export default function useDragSelect({
+  listRef,
+  orderedIds,
+  selectedIds,
+  setSelectedIds,
+  onStart,
+  bottomInset = 0,
+  instantZone = 0,
+}) {
   const state = useRef(null)
   const suppressClickUntil = useRef(0)
   const latest = useRef({ orderedIds, selectedIds })
@@ -76,7 +91,8 @@ export default function useDragSelect({ listRef, orderedIds, selectedIds, setSel
     stopDrag()
     const id = row.dataset.selectId
     const drag = { id, x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, active: false }
-    drag.timer = setTimeout(() => {
+
+    function begin() {
       const selection = latest.current.selectedIds
       drag.active = true
       drag.anchorId = id
@@ -86,9 +102,15 @@ export default function useDragSelect({ listRef, orderedIds, selectedIds, setSel
       applyRange(id)
       navigator.vibrate?.(10)
       drag.frame = requestAnimationFrame(autoScroll)
-    }, HOLD_MS)
+    }
+
     state.current = drag
-  }, [applyRange, autoScroll, onStart, stopDrag])
+    if (instantZone && event.clientX - row.getBoundingClientRect().left <= instantZone) {
+      begin()
+    } else {
+      drag.timer = setTimeout(begin, HOLD_MS)
+    }
+  }, [applyRange, autoScroll, onStart, stopDrag, instantZone])
 
   useEffect(() => {
     function onMove(event) {
@@ -134,6 +156,13 @@ export default function useDragSelect({ listRef, orderedIds, selectedIds, setSel
       }
     }
 
+    // The page can scroll under a resting finger or pointer (wheel, trackpad,
+    // momentum, auto-scroll): pick up the rows that move under it
+    function onScroll() {
+      const drag = state.current
+      if (drag?.active) applyRange(rowAt(drag.x, drag.y))
+    }
+
     function onContextMenu(event) {
       if (state.current && listRef.current?.contains(event.target)) event.preventDefault()
     }
@@ -146,7 +175,9 @@ export default function useDragSelect({ listRef, orderedIds, selectedIds, setSel
     window.addEventListener('touchcancel', stopDrag)
     window.addEventListener('click', onClick, true)
     window.addEventListener('contextmenu', onContextMenu)
+    window.addEventListener('scroll', onScroll, { passive: true })
     return () => {
+      window.removeEventListener('scroll', onScroll)
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', stopDrag)
       window.removeEventListener('pointercancel', onPointerCancel)
