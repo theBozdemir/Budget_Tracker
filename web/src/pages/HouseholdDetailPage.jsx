@@ -214,6 +214,16 @@ export default function HouseholdDetailPage() {
     setSelectedIds(new Set())
   }
 
+  // Escape also cancels selecting (handy on a computer)
+  useEffect(() => {
+    if (!selectMode) return undefined
+    function onKey(event) {
+      if (event.key === 'Escape' && !showBulkEdit) exitSelectMode()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selectMode, showBulkEdit])
+
   async function handleBulkDelete() {
     const count = selectedTransactions.length
     if (!count) return
@@ -256,6 +266,8 @@ export default function HouseholdDetailPage() {
     setSelectedIds,
     onStart: () => setSelectMode(true),
     bottomInset: 90,
+    // In select mode, sliding from the checkbox column selects without the hold
+    instantZone: selectMode ? 56 : 0,
   })
 
   const summary = summarize(filteredTransactions)
@@ -609,7 +621,7 @@ export default function HouseholdDetailPage() {
                 aria-pressed={selectMode}
                 onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
               >
-                {selectMode ? 'Done' : 'Select'}
+                {selectMode ? 'Cancel' : 'Select'}
               </button>
             )}
           </div>
@@ -727,6 +739,9 @@ export default function HouseholdDetailPage() {
       {selectMode && (
         <div className="bulk-bar" role="toolbar" aria-label="Selected transactions">
           <div className="bulk-bar-inner">
+            <button type="button" className="bulk-cancel" onClick={exitSelectMode} aria-label="Cancel selection">
+              ✕ Cancel
+            </button>
             <span className="bulk-count">
               {selectedTransactions.length ? `${selectedTransactions.length} selected` : 'Tap, or hold and slide'}
             </span>
