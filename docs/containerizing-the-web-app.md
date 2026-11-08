@@ -18,6 +18,39 @@ docker --version
 docker run --rm hello-world
 ```
 
+### Running Docker in a Linux VM instead of Docker Desktop
+
+Use these steps instead of the Windows ones above, and run all later commands **inside the VM** (bash).
+
+- [ ] Install Docker Engine in the VM (Ubuntu/Debian: follow docs.docker.com → *Install Docker Engine*),
+      then let your user run Docker without `sudo` and log out and back in:
+
+```bash
+sudo usermod -aG docker $USER
+docker run --rm hello-world
+```
+
+- [ ] **Clone the repo inside the VM.** Don't build from a Windows shared folder (slow, and it causes
+      permission and file-watching issues). The repo is private, so sign in with a GitHub token or
+      SSH key when cloning:
+
+```bash
+git clone https://github.com/theBozdemir/Budget_Tracker.git
+cd Budget_Tracker/web
+```
+
+- [ ] **Reach the app from Windows as `localhost`.** The container listens inside the VM, and Firebase
+      only allows sign-in from authorized domains (`localhost` is; the VM's IP isn't). Forward the
+      VM's port 8080 to Windows, using either:
+  - an **SSH tunnel** (any VM): on Windows run `ssh -L 8080:localhost:8080 youruser@<VM-IP>` and keep
+    it open; or
+  - **VirtualBox port forwarding** (NAT network): VM Settings → Network → Advanced → Port Forwarding,
+    host port `8080` → guest port `8080`.
+
+  Then open **http://localhost:8080** in your Windows browser. (Alternative: add the VM's IP or a
+  hostname under Firebase Console → Authentication → Settings → Authorized domains. Less reliable if
+  the IP changes.)
+
 ---
 
 ## 2. Choose base images
@@ -68,6 +101,8 @@ All paths are relative to the repository root.
 ---
 
 ## 4. Build
+
+Commands below are for Windows PowerShell; in a VM run the same `docker` commands from `Budget_Tracker/web`.
 
 ```powershell
 cd C:\Users\tbozdemir\IdeaProjects\Budget_Tracker\web
@@ -131,6 +166,8 @@ docker rmi budget-tracker-web:dev
 | F5 on a page gives 404 | Add the `index.html` fallback in `nginx.conf` |
 | "Unexpected token '<'" in the console | The fallback is also catching `/assets/*`; make missing assets 404 |
 | `auth/unauthorized-domain` | Open via `http://localhost:8080`, or add the host in Firebase Console → Authentication → Settings → Authorized domains |
+| Docker in a VM: page doesn't open from Windows | Forward port 8080 (SSH tunnel or VirtualBox port forwarding), see step 1 |
+| `permission denied ... docker.sock` in the VM | Add your user to the `docker` group and log in again (step 1) |
 | nginx: permission denied on port 80 | Non-root can't use ports below 1024; listen on 8080 |
 | Old version still showing | Rebuild the image, recreate the container, hard-refresh (Ctrl+F5) |
 | `esbuild` / platform errors during build | Your Windows `node_modules` got copied in; check `.dockerignore` |
