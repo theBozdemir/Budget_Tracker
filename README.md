@@ -158,10 +158,9 @@ If Firestore asks for composite indexes when you run queries, create them from t
 
 ## Docker (learning exercise)
 
-[docs/containerizing-the-web-app.md](docs/containerizing-the-web-app.md) is a step-by-step guide to
-containerizing the web app, from choosing a base OS image to a multi-stage build, Docker Compose with
-the Firebase emulators, and running the rules tests in a container. It explains the decisions and
-project-specific gotchas without giving away the Dockerfile.
+[docs/containerizing-the-web-app.md](docs/containerizing-the-web-app.md) is a short checklist for
+running the web app in a container: base images, the files to write, and the commands to build, run
+and verify it.
 
 ## Troubleshooting
 
